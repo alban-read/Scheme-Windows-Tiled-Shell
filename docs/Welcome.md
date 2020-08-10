@@ -2,15 +2,9 @@
 
 *Navigate **back** = **alt-left-arrow*** 
 
-##### Application Topics
+### Latest Documentation
 
-| [The workspace](gui.html)           |                         |                                       |
-| ----------------------------------- | ----------------------- | ------------------------------------- |
-| [Browser Pane](browser.html)        | [Keys](keys.html)       | [Graphics ](graphics.html)            |
-| [Animation](Animation.html)         | [License](license.html) | [Implementation](implementation.html) |
-| [Release Notes](Release Notes.html) |                         |                                       |
-
-------
+[Online Documentation](https://github.com/alban-read/Scheme-Windows-Tiled-Shell/wiki)
 
 ##### Chez Scheme Language Topics
 
@@ -19,9 +13,17 @@
 
 ------
 
- 
 
- 
+
+#### Offline local documentation
+
+##### Application Topics
+
+| [The workspace](gui.html)                                    |                         |                                       |
+| ------------------------------------------------------------ | ----------------------- | ------------------------------------- |
+| [Browser Pane](browser.html)                                 | [Keys](keys.html)       | [Graphics ](graphics.html)            |
+| [Animation](Animation.html)                                  | [License](license.html) | [Implementation](implementation.html) |
+| [Release Notes](https://github.com/alban-read/Scheme-Windows-Tiled-Shell/wiki) |                         |                                       |
 
 ----
 
