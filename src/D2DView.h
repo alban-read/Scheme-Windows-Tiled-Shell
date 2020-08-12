@@ -50,3 +50,11 @@ private:
 };
 
 #endif // _D2DVIEW_H_
+
+void NewFunction(float& r, ptr& next, float& g, float& b, float& a);
+
+void list_to_xywh(float& x, ptr& next, float& y, float& w, float& h);
+
+void CheckFillBrush();
+
+void CheckLineBrush();

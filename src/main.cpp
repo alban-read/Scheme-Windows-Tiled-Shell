@@ -7,6 +7,7 @@
 #include "Engine.h"
 #include "Text.h"
 #include "Utility.h"
+ 
 
 #pragma comment(lib, "d2d1.lib")
 #pragma comment(lib, "Dwrite.lib")
@@ -29,6 +30,7 @@ bool load_lexer()
 void init_audio();
 int APIENTRY WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
+
     load_lexer();
     init_audio();
     Engine::Start();

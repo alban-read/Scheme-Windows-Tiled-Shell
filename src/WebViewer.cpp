@@ -13,10 +13,6 @@
 #include <wrl.h>
 #include <wil/com.h>
 #include <WebView2.h> 
-#include <locale>
-#include <codecvt>
-#include "resource.h"
- 
 #include <deque>
 #include <locale>
 #include <codecvt>

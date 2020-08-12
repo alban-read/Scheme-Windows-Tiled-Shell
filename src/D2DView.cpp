@@ -2,11 +2,17 @@
 #include "stdafx.h"
 #include "D2DView.h"
 #include "ContainerApp.h"
-
+#include "Text.h"
+#include "Engine.h"
+#include <fmt/format.h>
+#include <Shlwapi.h>
+#include <CommCtrl.h>
 #include "scheme.h"
 #include <dwrite.h>
 #include "Utility.h"
 #include <wincodec.h>
+#include <wrl.h>
+#include <wil/com.h>
 
 #define CALL0(who) Scall0(Stop_level_value(Sstring_to_symbol(who)))
 #define CALL1(who, arg) Scall1(Stop_level_value(Sstring_to_symbol(who)), arg)
@@ -31,11 +37,19 @@ ID2D1SolidColorBrush* pfillColourBrush = nullptr;   // fill-color
 ID2D1BitmapBrush* pPatternBrush = nullptr;          // brush-pattern
 ID2D1BitmapBrush* pTileBrush = nullptr;				// tile its U/S
 
-// we draw into this
+// double buffers
+// this is normally pointed at bitmap 
+ID2D1RenderTarget* ActiveRenderTarget = nullptr;
+// bitmap and bitmap2 are swapped 
+// functions normally draw on this
 ID2D1Bitmap* bitmap = nullptr;
 ID2D1BitmapRenderTarget* BitmapRenderTarget = nullptr;
+// this is normally what is being displayed
 ID2D1Bitmap* bitmap2 = nullptr;
 ID2D1BitmapRenderTarget* BitmapRenderTarget2 = nullptr;
+
+
+
 
 ID2D1Factory* pD2DFactory;
 
@@ -46,86 +60,17 @@ float graphics_pen_width = static_cast<float>(1.2);
 
 #pragma warning(disable : 4996)
 
+void d2d_DPIScale(ID2D1Factory* pFactory)
+{
+	FLOAT dpiX, dpiY;
+	pFactory->GetDesktopDpi(&dpiX, &dpiY);
+	g_DPIScaleX = dpiX / 96.0f;
+	g_DPIScaleY = dpiY / 96.0f;
+}
 
 void d2d_set_main_window(HWND w) {
 	main_window = w;
 }
-
-void d2d_CreateOffscreenBitmap()
-{
-	if (pRenderTarget == nullptr)
-	{
-		return;
-	}
-
-	if (BitmapRenderTarget == NULL) {
-		pRenderTarget->CreateCompatibleRenderTarget(D2D1::SizeF(prefer_width, prefer_height), &BitmapRenderTarget);
-		BitmapRenderTarget->GetBitmap(&bitmap);
-	}
-	if (BitmapRenderTarget2 == NULL) {
-		pRenderTarget->CreateCompatibleRenderTarget(D2D1::SizeF(prefer_width, prefer_height), &BitmapRenderTarget2);
-		BitmapRenderTarget2->GetBitmap(&bitmap2);
-	}
-}
-
-void swap_buffers(int n) {
-
-	if (pRenderTarget == nullptr) {
-		return;
-	}
-
-	ID2D1Bitmap* temp;
-	d2d_CreateOffscreenBitmap();
-	if (n == 1) {
-		BitmapRenderTarget2->BeginDraw();
-		BitmapRenderTarget2->DrawBitmap(bitmap, D2D1::RectF(0.0f, 0.0f, prefer_width, prefer_height));
-		BitmapRenderTarget2->EndDraw();
-	}
-	temp = bitmap;
-	bitmap = bitmap2;
-	bitmap2 = temp;
-	ID2D1BitmapRenderTarget* temptarget;
-	temptarget = BitmapRenderTarget;
-	BitmapRenderTarget = BitmapRenderTarget2;
-	BitmapRenderTarget2 = temptarget;
-
-	if (main_window != nullptr) {
-
-		InvalidateRect(main_window, NULL, FALSE);
-	}
-	Sleep(1);
-}
-
-
-ptr d2d_clear(float r, float g, float b, float a) {
-
-	if (pRenderTarget == nullptr) {
-		return Sfalse;
-	}
-	WaitForSingleObject(g_image_rotation_mutex, INFINITE);
-	BitmapRenderTarget->BeginDraw();
-	BitmapRenderTarget->Clear((D2D1::ColorF(r, g, b, a)));
-	BitmapRenderTarget->EndDraw();
-	BitmapRenderTarget2->BeginDraw();
-	BitmapRenderTarget2->Clear((D2D1::ColorF(r, g, b, a)));
-	BitmapRenderTarget2->EndDraw();
-	ReleaseMutex(g_image_rotation_mutex);
-	return Strue;
-}
-
-ptr d2d_show(int n)
-{
-	swap_buffers(n);
-	if (main_window != nullptr)
-		PostMessageW(main_window, WM_USER + 501, (WPARAM)0, (LPARAM)0);
-	return Strue;
-}
-
-ptr d2d_set_stroke_width(float w) {
-	d2d_stroke_width = w;
-	return Strue;
-}
-
 
 ptr d2d_color(float r, float g, float b, float a) {
 
@@ -156,13 +101,140 @@ ptr d2d_fill_color(float r, float g, float b, float a) {
 	return Strue;
 }
 
-ptr d2d_ellipse(float x, float y, float w, float h) {
+void CheckFillBrush()
+{
+	if (pfillColourBrush == nullptr) {
+		d2d_fill_color(0.0, 0.0, 0.0, 1.0);
+	}
+}
 
-	if (BitmapRenderTarget == nullptr)
+void CheckLineBrush()
+{
+	if (pColourBrush == nullptr) {
+		d2d_color(0.0, 0.0, 0.0, 1.0);
+	}
+}
+
+
+void d2d_CreateOffscreenBitmap()
+{
+	if (pRenderTarget == nullptr)
 	{
-		return Snil;
+		return;
 	}
 
+	if (BitmapRenderTarget == NULL) {
+		pRenderTarget->CreateCompatibleRenderTarget(D2D1::SizeF(prefer_width, prefer_height), &BitmapRenderTarget);
+		BitmapRenderTarget->GetBitmap(&bitmap);
+	}
+	if (BitmapRenderTarget2 == NULL) {
+		pRenderTarget->CreateCompatibleRenderTarget(D2D1::SizeF(prefer_width, prefer_height), &BitmapRenderTarget2);
+		BitmapRenderTarget2->GetBitmap(&bitmap2);
+	}
+
+	ActiveRenderTarget = BitmapRenderTarget;
+}
+
+void swap_buffers(int n) {
+
+	if (pRenderTarget == nullptr) {
+		return;
+	}
+
+	ID2D1Bitmap* temp;
+	d2d_CreateOffscreenBitmap();
+	if (n == 1) {
+		BitmapRenderTarget2->BeginDraw();
+		BitmapRenderTarget2->DrawBitmap(bitmap, D2D1::RectF(0.0f, 0.0f, prefer_width, prefer_height));
+		BitmapRenderTarget2->EndDraw();
+	}
+	temp = bitmap;
+	bitmap = bitmap2;
+	bitmap2 = temp;
+	ID2D1BitmapRenderTarget* temptarget;
+	temptarget = BitmapRenderTarget;
+	BitmapRenderTarget = BitmapRenderTarget2;
+	BitmapRenderTarget2 = temptarget;
+	// reset on swap
+	ActiveRenderTarget = BitmapRenderTarget;
+
+	if (main_window != nullptr) {
+
+		InvalidateRect(main_window, NULL, FALSE);
+	}
+	Sleep(1);
+}
+
+
+ptr d2d_clear(float r, float g, float b, float a) {
+
+	if (pRenderTarget == nullptr || ActiveRenderTarget ==nullptr) {
+		return Sfalse;
+	}
+	WaitForSingleObject(g_image_rotation_mutex, INFINITE);
+	ActiveRenderTarget->BeginDraw();
+	ActiveRenderTarget->Clear((D2D1::ColorF(r, g, b, a)));
+	ActiveRenderTarget->EndDraw();
+	ActiveRenderTarget->BeginDraw();
+	ActiveRenderTarget->Clear((D2D1::ColorF(r, g, b, a)));
+	ActiveRenderTarget->EndDraw();
+	ReleaseMutex(g_image_rotation_mutex);
+	return Strue;
+}
+
+
+// cannot save hw rendered bitmap to image :( 
+ptr d2d_save(char* filename) {
+	return Snil;
+}
+
+
+ptr d2d_show(int n)
+{
+	swap_buffers(n);
+	if (main_window != nullptr)
+		PostMessageW(main_window, WM_USER + 501, (WPARAM)0, (LPARAM)0);
+	return Strue;
+}
+
+ptr d2d_set_stroke_width(float w) {
+	d2d_stroke_width = w;
+	return Strue;
+}
+
+ptr d2d_zfill_ellipse(float x, float y, float w, float h) {
+	auto ellipse = D2D1::Ellipse(D2D1::Point2F(x, y), w, h);
+	ActiveRenderTarget->FillEllipse(ellipse, pfillColourBrush);
+	return Strue;
+}
+
+ptr d2d_fill_ellipse(float x, float y, float w, float h) {
+
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
+	}
+
+	CheckFillBrush();
+	auto ellipse = D2D1::Ellipse(D2D1::Point2F(x, y), w, h);
+	ActiveRenderTarget->BeginDraw();
+	ActiveRenderTarget->FillEllipse(ellipse, pfillColourBrush);
+	ActiveRenderTarget->EndDraw();
+	return Strue;
+}
+
+
+ptr d2d_zellipse(float x, float y, float w, float h) {
+	auto stroke_width = d2d_stroke_width;
+	auto stroke_style = d2d_stroke_style;
+	auto ellipse = D2D1::Ellipse(D2D1::Point2F(x, y), w, h);
+	ActiveRenderTarget->DrawEllipse(ellipse, pColourBrush, d2d_stroke_width);
+	return Strue;
+}
+ptr d2d_ellipse(float x, float y, float w, float h) {
+
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
+	}
 	if (pColourBrush == nullptr) {
 		d2d_color(0.0, 0.0, 0.0, 1.0);
 	}
@@ -177,159 +249,169 @@ ptr d2d_ellipse(float x, float y, float w, float h) {
 	return Strue;
 }
 
+ptr d2d_zline(float x, float y, float x1, float y1) {
+	auto stroke_width = d2d_stroke_width;
+	auto stroke_style = d2d_stroke_style;
+	auto p1 = D2D1::Point2F(x, y);
+	auto p2 = D2D1::Point2F(x1, y1);
+	ActiveRenderTarget->DrawLine(p1, p2, pColourBrush, stroke_width, stroke_style);
+	return Strue;
+}
+
+
+
 ptr d2d_line(float x, float y, float x1, float y1) {
-
-
-	if (BitmapRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
-
-	if (pColourBrush == nullptr) {
-		d2d_color(0.0, 0.0, 0.0, 1.0);
-	}
+	CheckLineBrush();
 	auto stroke_width = d2d_stroke_width;
 	auto stroke_style = d2d_stroke_style;
 	auto p1 = D2D1::Point2F(x, y);
 	auto p2 = D2D1::Point2F(x1, y1);
 
-	BitmapRenderTarget->BeginDraw();
-	BitmapRenderTarget->DrawLine(p1, p2, pColourBrush, stroke_width, stroke_style);
-	BitmapRenderTarget->EndDraw();
+	ActiveRenderTarget->BeginDraw();
+	ActiveRenderTarget->DrawLine(p1, p2, pColourBrush, stroke_width, stroke_style);
+	ActiveRenderTarget->EndDraw();
 
 	return Strue;
 }
 
-ptr d2d_fill_ellipse(float x, float y, float w, float h) {
 
-	if (BitmapRenderTarget == nullptr)
+// runs lambda f inside a draw operation
+ptr d2d_draw_func(ptr f) {
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
+	}
+	CheckLineBrush();
+	CheckFillBrush();
+	try {
+		ActiveRenderTarget->BeginDraw();
+		ptr result=Engine::Run(f);
+		ActiveRenderTarget->EndDraw();
+		return result;
+	}
+	catch (const CException& e)
 	{
-		return Snil;
+		return Sfalse;
 	}
-
-	if (pfillColourBrush == nullptr) {
-		d2d_fill_color(0.0, 0.0, 0.0, 1.0);
-	}
-	auto ellipse = D2D1::Ellipse(D2D1::Point2F(x, y), w, h);
-	BitmapRenderTarget->BeginDraw();
-	BitmapRenderTarget->FillEllipse(ellipse, pfillColourBrush);
-	BitmapRenderTarget->EndDraw();
 	return Strue;
 }
 
+
+ 
+ptr d2d_zrectangle(float x, float y, float w, float h) {
+	auto stroke_width = d2d_stroke_width;
+	auto stroke_style = d2d_stroke_style;
+	D2D1_RECT_F rectangle1 = D2D1::RectF(x, y, w, h);
+	ActiveRenderTarget->DrawRectangle(&rectangle1, pColourBrush, stroke_width);
+	return Strue;
+}
 
 ptr d2d_rectangle(float x, float y, float w, float h) {
 
-	if (BitmapRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
-	if (pColourBrush == nullptr) {
-		d2d_color(0.0, 0.0, 0.0, 1.0);
-	}
+	CheckLineBrush();
 	auto stroke_width = d2d_stroke_width;
 	auto stroke_style = d2d_stroke_style;
 	D2D1_RECT_F rectangle1 = D2D1::RectF(x, y, w, h);
 
-	BitmapRenderTarget->BeginDraw();
-	BitmapRenderTarget->DrawRectangle(&rectangle1, pColourBrush, stroke_width);
-	BitmapRenderTarget->EndDraw();
+	ActiveRenderTarget->BeginDraw();
+	ActiveRenderTarget->DrawRectangle(&rectangle1, pColourBrush, stroke_width);
+	ActiveRenderTarget->EndDraw();
 	return Strue;
 }
 
 ptr d2d_rounded_rectangle(float x, float y, float w, float h, float rx, float ry) {
 
-	if (BitmapRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
-	if (pColourBrush == nullptr) {
-		d2d_color(0.0, 0.0, 0.0, 1.0);
-	}
+	CheckLineBrush();
 	auto stroke_width = d2d_stroke_width;
 	auto stroke_style = d2d_stroke_style;
 	D2D1_ROUNDED_RECT rectangle1 = { D2D1::RectF(x, y, w, h), rx, ry };
-	BitmapRenderTarget->BeginDraw();
-	BitmapRenderTarget->DrawRoundedRectangle(rectangle1, pfillColourBrush, stroke_width, stroke_style);
-	BitmapRenderTarget->EndDraw();
+	ActiveRenderTarget->BeginDraw();
+	ActiveRenderTarget->DrawRoundedRectangle(rectangle1, pfillColourBrush, stroke_width, stroke_style);
+	ActiveRenderTarget->EndDraw();
+	return Strue;
+}
+
+
+ptr d2d_zfill_rectangle(float x, float y, float w, float h) {
+	D2D1_RECT_F rectangle1 = D2D1::RectF(x, y, w, h);
+	ActiveRenderTarget->FillRectangle(&rectangle1, pfillColourBrush);
 	return Strue;
 }
 
 
 ptr d2d_fill_rectangle(float x, float y, float w, float h) {
 
-	if (BitmapRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
-	if (pfillColourBrush == nullptr) {
-		d2d_fill_color(0.0, 0.0, 0.0, 1.0);
-	}
+	CheckFillBrush();
 	D2D1_RECT_F rectangle1 = D2D1::RectF(x, y, w, h);
-	BitmapRenderTarget->BeginDraw();
-	BitmapRenderTarget->FillRectangle(&rectangle1, pfillColourBrush);
-	BitmapRenderTarget->EndDraw();
+	ActiveRenderTarget->BeginDraw();
+	ActiveRenderTarget->FillRectangle(&rectangle1, pfillColourBrush);
+	ActiveRenderTarget->EndDraw();
 	return Strue;
 }
 
 // reset matrix
 ptr d2d_matrix_identity() {
-	if (BitmapRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
-	BitmapRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
+	ActiveRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
 	return Strue;
 }
 
 ptr d2d_matrix_rotate(float a, float x, float y) {
-	if (BitmapRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
-	BitmapRenderTarget->SetTransform(
+	ActiveRenderTarget->SetTransform(
 		D2D1::Matrix3x2F::Rotation(a, D2D1::Point2F(x, y)));
 	return Strue;
 }
 
 ptr d2d_matrix_translate(float x, float y) {
-	if (BitmapRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
-	BitmapRenderTarget->SetTransform(
+	ActiveRenderTarget->SetTransform(
 		D2D1::Matrix3x2F::Translation(40, 10));
 	return Strue;
 }
 
 ptr d2d_matrix_rotrans(float a, float x, float y, float x1, float y1) {
-	if (BitmapRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
 	const D2D1::Matrix3x2F rot = D2D1::Matrix3x2F::Rotation(a, D2D1::Point2F(x, y));
 	const D2D1::Matrix3x2F trans = D2D1::Matrix3x2F::Translation(x1, y1);
-	BitmapRenderTarget->SetTransform(rot * trans);
+	ActiveRenderTarget->SetTransform(rot * trans);
 	return Strue;
 }
 
 ptr d2d_matrix_transrot(float a, float x, float y, float x1, float y1) {
-	if (BitmapRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
 	const D2D1::Matrix3x2F rot = D2D1::Matrix3x2F::Rotation(a, D2D1::Point2F(x, y));
 	const D2D1::Matrix3x2F trans = D2D1::Matrix3x2F::Translation(x1, y1);
-	BitmapRenderTarget->SetTransform(trans * rot);
+	ActiveRenderTarget->SetTransform(trans * rot);
 	return Strue;
 }
 
 ptr d2d_matrix_scale(float x, float y) {
-	if (BitmapRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
-	BitmapRenderTarget->SetTransform(
+	ActiveRenderTarget->SetTransform(
 		D2D1::Matrix3x2F::Scale(
 			D2D1::Size(x, y),
 			D2D1::Point2F(prefer_width / 2, prefer_height / 2))
@@ -338,51 +420,47 @@ ptr d2d_matrix_scale(float x, float y) {
 }
 
 ptr d2d_matrix_rotscale(float a, float x, float y, float x1, float y1) {
-	if (BitmapRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
 	const auto scale = D2D1::Matrix3x2F::Scale(
 		D2D1::Size(x, y),
 		D2D1::Point2F(prefer_width / 2, prefer_height / 2));
 	const D2D1::Matrix3x2F rot = D2D1::Matrix3x2F::Rotation(a, D2D1::Point2F(x, y));
-	BitmapRenderTarget->SetTransform(rot * scale);
+	ActiveRenderTarget->SetTransform(rot * scale);
 	return Strue;
 }
 
 ptr d2d_matrix_scalerot(float a, float x, float y, float x1, float y1) {
-	if (BitmapRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
 	const auto scale = D2D1::Matrix3x2F::Scale(
 		D2D1::Size(x, y),
 		D2D1::Point2F(prefer_width / 2, prefer_height / 2));
 	const D2D1::Matrix3x2F rot = D2D1::Matrix3x2F::Rotation(a, D2D1::Point2F(x, y));
-	BitmapRenderTarget->SetTransform(rot * scale);
+	ActiveRenderTarget->SetTransform(rot * scale);
 	return Strue;
 }
 
 ptr d2d_matrix_scalerottrans(float a, float x, float y, float x1, float y1, float x2, float y2) {
-	if (BitmapRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
 	const auto scale = D2D1::Matrix3x2F::Scale(
 		D2D1::Size(x, y),
 		D2D1::Point2F(prefer_width / 2, prefer_height / 2));
 	const D2D1::Matrix3x2F rot = D2D1::Matrix3x2F::Rotation(a, D2D1::Point2F(x, y));
 	const D2D1::Matrix3x2F trans = D2D1::Matrix3x2F::Translation(x1, y1);
-	BitmapRenderTarget->SetTransform(scale * rot * trans);
+	ActiveRenderTarget->SetTransform(scale * rot * trans);
 	return Strue;
 }
 
 ptr d2d_matrix_skew(float x, float y) {
-	if (BitmapRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
-	BitmapRenderTarget->SetTransform(
+	ActiveRenderTarget->SetTransform(
 		D2D1::Matrix3x2F::Skew(
 			x, y,
 			D2D1::Point2F(prefer_width / 2, prefer_height / 2))
@@ -394,23 +472,13 @@ ptr d2d_matrix_skew(float x, float y) {
 ptr d2d_render(float x, float y) {
 
 	swap_buffers(1);
-	if (pRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
-	pRenderTarget->BeginDraw();
-	pRenderTarget->DrawBitmap(bitmap2, D2D1::RectF(x, y, prefer_width, prefer_height));
-	pRenderTarget->EndDraw();
+	ActiveRenderTarget->BeginDraw();
+	ActiveRenderTarget->DrawBitmap(bitmap2, D2D1::RectF(x, y, prefer_width, prefer_height));
+	ActiveRenderTarget->EndDraw();
 	return Strue;
-}
-
-
-void d2d_DPIScale(ID2D1Factory* pFactory)
-{
-	FLOAT dpiX, dpiY;
-	pFactory->GetDesktopDpi(&dpiX, &dpiY);
-	g_DPIScaleX = dpiX / 96.0f;
-	g_DPIScaleY = dpiY / 96.0f;
 }
 
 int d2d_CreateGridPatternBrush(
@@ -418,7 +486,6 @@ int d2d_CreateGridPatternBrush(
 	ID2D1BitmapBrush** ppBitmapBrush
 )
 {
-
 	if (pPatternBrush != nullptr) {
 		return 0;
 	}
@@ -494,24 +561,42 @@ IDWriteFactory* pDWriteFactory;
 IDWriteTextFormat* TextFont;
 ID2D1SolidColorBrush* pBlackBrush;
 
+
+ptr d2d_text_mode(int n) {
+
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
+	}
+	D2D1_TEXT_ANTIALIAS_MODE mode = (D2D1_TEXT_ANTIALIAS_MODE)n;
+	ActiveRenderTarget->BeginDraw();
+	ActiveRenderTarget->SetTextAntialiasMode(mode);
+	ActiveRenderTarget->EndDraw();
+	return Strue;
+}
+
+ptr d2d_zwrite_text(float x, float y, char* s) {
+	const auto text = Utility::widen(s);
+	const auto len = text.length();
+	D2D1_RECT_F layoutRect = D2D1::RectF(x, y, prefer_width - x, prefer_height - y);
+	ActiveRenderTarget->DrawTextW(text.c_str(), len, TextFont, layoutRect, pfillColourBrush);
+	return Strue;
+}
+
 ptr d2d_write_text(float x, float y, char* s) {
 
-	if (BitmapRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
-	if (pfillColourBrush == nullptr) {
-		d2d_fill_color(0.0, 0.0, 0.0, 1.0);
-	}
+	CheckFillBrush();
 
 	const auto text = Utility::widen(s);
 	const auto len = text.length();
 
 	D2D1_RECT_F layoutRect = D2D1::RectF(x, y, prefer_width - x, prefer_height - y);
 
-	BitmapRenderTarget->BeginDraw();
-	BitmapRenderTarget->DrawTextW(text.c_str(), len, TextFont, layoutRect, pfillColourBrush);
-	BitmapRenderTarget->EndDraw();
+	ActiveRenderTarget->BeginDraw();
+	ActiveRenderTarget->DrawTextW(text.c_str(), len, TextFont, layoutRect, pfillColourBrush);
+	ActiveRenderTarget->EndDraw();
 	return Strue;
 }
 
@@ -608,15 +693,37 @@ ptr d2d_load_sprites(char* filename, int n) {
 }
 
 
+ptr d2d_zrender_sprite(int n, float dx, float dy) {
+
+	if (n > bank_size - 1) {
+		return Snil;
+	}
+ 
+	auto sprite_sheet = pSpriteSheet[n];
+	if (sprite_sheet == NULL) {
+		return Snil;
+	}
+	const auto size = sprite_sheet->GetPixelSize();
+	const auto dest = D2D1::RectF(dx, dy, dx + size.width, dy + size.height);
+	const auto opacity = 1.0f;
+	ActiveRenderTarget->SetTransform(
+		D2D1::Matrix3x2F::Scale(
+			D2D1::Size(1.0, 1.0),
+			D2D1::Point2F(size.width / 2, size.height / 2)));
+	ActiveRenderTarget->DrawBitmap(sprite_sheet, dest);
+	ActiveRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
+	return Strue;
+}
+
+
 // from sheet n; at sx, sy to dx, dy, w,h
 ptr d2d_render_sprite(int n, float dx, float dy) {
 
 	if (n > bank_size - 1) {
 		return Snil;
 	}
-	if (BitmapRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
 	auto sprite_sheet = pSpriteSheet[n];
 	if (sprite_sheet == NULL) {
@@ -625,13 +732,38 @@ ptr d2d_render_sprite(int n, float dx, float dy) {
 	const auto size = sprite_sheet->GetPixelSize();
 	const auto dest = D2D1::RectF(dx, dy, dx + size.width, dy + size.height);
 	const auto opacity = 1.0f;
-	BitmapRenderTarget->SetTransform(
+	ActiveRenderTarget->SetTransform(
 		D2D1::Matrix3x2F::Scale(
 			D2D1::Size(1.0, 1.0),
 			D2D1::Point2F(size.width / 2, size.height / 2)));
-	BitmapRenderTarget->BeginDraw();
-	BitmapRenderTarget->DrawBitmap(sprite_sheet, dest);
-	BitmapRenderTarget->EndDraw();
+	ActiveRenderTarget->BeginDraw();
+	ActiveRenderTarget->DrawBitmap(sprite_sheet, dest);
+	ActiveRenderTarget->EndDraw();
+	ActiveRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
+	return Strue;
+}
+
+ptr d2d_zrender_sprite_rotscale(int n, float dx, float dy, float a, float s) {
+
+	if (n > bank_size - 1) {
+		return Snil;
+	}
+ 
+	auto sprite_sheet = pSpriteSheet[n];
+	if (sprite_sheet == NULL) {
+		return Snil;
+	}
+	const auto size = sprite_sheet->GetPixelSize();
+	const auto dest = D2D1::RectF(dx, dy, dx + size.width, dy + size.height);
+	const auto opacity = 1.0f;
+
+	const auto scale = D2D1::Matrix3x2F::Scale(
+		D2D1::Size(s, s),
+		D2D1::Point2F(dx, dy));
+	const D2D1::Matrix3x2F rot = D2D1::Matrix3x2F::Rotation(a, D2D1::Point2F(dx + (size.width / 2), dy + (size.height / 2)));
+	ActiveRenderTarget->SetTransform(rot * scale);
+	ActiveRenderTarget->DrawBitmap(sprite_sheet, dest);
+	ActiveRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
 	return Strue;
 }
 
@@ -641,9 +773,8 @@ ptr d2d_render_sprite_rotscale(int n, float dx, float dy, float a, float s) {
 	if (n > bank_size - 1) {
 		return Snil;
 	}
-	if (BitmapRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
 	auto sprite_sheet = pSpriteSheet[n];
 	if (sprite_sheet == NULL) {
@@ -658,13 +789,40 @@ ptr d2d_render_sprite_rotscale(int n, float dx, float dy, float a, float s) {
 		D2D1::Point2F(dx, dy));
 	const D2D1::Matrix3x2F rot = D2D1::Matrix3x2F::Rotation(a, D2D1::Point2F(dx + (size.width / 2), dy + (size.height / 2)));
 
-	BitmapRenderTarget->BeginDraw();
-	BitmapRenderTarget->SetTransform(rot * scale);
-	BitmapRenderTarget->DrawBitmap(sprite_sheet, dest);
-	BitmapRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
-	BitmapRenderTarget->EndDraw();
+	ActiveRenderTarget->BeginDraw();
+	ActiveRenderTarget->SetTransform(rot * scale);
+	ActiveRenderTarget->DrawBitmap(sprite_sheet, dest);
+	ActiveRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
+	ActiveRenderTarget->EndDraw();
 	return Strue;
 }
+
+
+// from sheet n; at sx, sy to dx, dy, w,h scale up
+ptr d2d_zrender_sprite_sheet(int n, float dx, float dy, float dw, float dh,
+	float sx, float sy, float sw, float sh, float scale) {
+
+	if (n > bank_size - 1) {
+		return Snil;
+	}
+
+ 
+
+	auto sprite_sheet = pSpriteSheet[n];
+	if (sprite_sheet == NULL) {
+		return Snil;
+	}
+	const auto size = sprite_sheet->GetPixelSize();
+	const auto dest = D2D1::RectF(dx, dy, scale * (dx + dw), scale * (dy + dh));
+	const auto source = D2D1::RectF(sx, sy, sx + sw, sy + sh);
+	const auto opacity = 1.0f;
+ 
+	ActiveRenderTarget->DrawBitmap(sprite_sheet, dest, 1.0f,
+		D2D1_BITMAP_INTERPOLATION_MODE::D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, source);
+ 
+	return Strue;
+}
+
 
 // from sheet n; at sx, sy to dx, dy, w,h scale up
 ptr d2d_render_sprite_sheet(int n, float dx, float dy, float dw, float dh,
@@ -674,9 +832,8 @@ ptr d2d_render_sprite_sheet(int n, float dx, float dy, float dw, float dh,
 		return Snil;
 	}
 
-	if (BitmapRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
 
 	auto sprite_sheet = pSpriteSheet[n];
@@ -687,12 +844,42 @@ ptr d2d_render_sprite_sheet(int n, float dx, float dy, float dw, float dh,
 	const auto dest = D2D1::RectF(dx, dy, scale * (dx + dw), scale * (dy + dh));
 	const auto source = D2D1::RectF(sx, sy, sx + sw, sy + sh);
 	const auto opacity = 1.0f;
-	BitmapRenderTarget->BeginDraw();
-	BitmapRenderTarget->DrawBitmap(sprite_sheet, dest, 1.0f,
+	ActiveRenderTarget->BeginDraw();
+	ActiveRenderTarget->DrawBitmap(sprite_sheet, dest, 1.0f,
 		D2D1_BITMAP_INTERPOLATION_MODE::D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, source);
-	BitmapRenderTarget->EndDraw();
+	ActiveRenderTarget->EndDraw();
 	return Strue;
 }
+
+
+// from sheet n; at sx, sy to dx, dy, w,h scale up
+ptr d2d_zrender_sprite_sheet_rot_scale(int n, float dx, float dy, float dw, float dh,
+	float sx, float sy, float sw, float sh, float scale, float a, float x2, float y2) {
+
+	if (n > bank_size - 1) {
+		return Snil;
+	}
+ 
+	auto sprite_sheet = pSpriteSheet[n];
+	if (sprite_sheet == NULL) {
+		return Snil;
+	}
+	const auto size = sprite_sheet->GetPixelSize();
+	const auto dest = D2D1::RectF(dx, dy, scale * (dx + dw), scale * (dy + dh));
+	const auto source = D2D1::RectF(sx, sy, sx + sw, sy + sh);
+	const auto opacity = 1.0f;
+	const D2D1::Matrix3x2F rot = D2D1::Matrix3x2F::Rotation(a, D2D1::Point2F(x2, y2));
+ 
+	ActiveRenderTarget->SetTransform(rot);
+	ActiveRenderTarget->DrawBitmap(sprite_sheet, dest, 1.0f,
+		D2D1_BITMAP_INTERPOLATION_MODE::D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, source);
+	ActiveRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
+ 
+	return Strue;
+}
+
+
+
 
 // from sheet n; at sx, sy to dx, dy, w,h scale up
 ptr d2d_render_sprite_sheet_rot_scale(int n, float dx, float dy, float dw, float dh,
@@ -701,9 +888,8 @@ ptr d2d_render_sprite_sheet_rot_scale(int n, float dx, float dy, float dw, float
 	if (n > bank_size - 1) {
 		return Snil;
 	}
-	if (BitmapRenderTarget == nullptr)
-	{
-		return Snil;
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return Sfalse;
 	}
 
 	auto sprite_sheet = pSpriteSheet[n];
@@ -715,12 +901,12 @@ ptr d2d_render_sprite_sheet_rot_scale(int n, float dx, float dy, float dw, float
 	const auto source = D2D1::RectF(sx, sy, sx + sw, sy + sh);
 	const auto opacity = 1.0f;
 	const D2D1::Matrix3x2F rot = D2D1::Matrix3x2F::Rotation(a, D2D1::Point2F(x2, y2));
-	BitmapRenderTarget->BeginDraw();
-	BitmapRenderTarget->SetTransform(rot);
-	BitmapRenderTarget->DrawBitmap(sprite_sheet, dest, 1.0f,
+	ActiveRenderTarget->BeginDraw();
+	ActiveRenderTarget->SetTransform(rot);
+	ActiveRenderTarget->DrawBitmap(sprite_sheet, dest, 1.0f,
 		D2D1_BITMAP_INTERPOLATION_MODE::D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, source);
-	BitmapRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
-	BitmapRenderTarget->EndDraw();
+	ActiveRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
+	ActiveRenderTarget->EndDraw();
 	return Strue;
 }
 
@@ -814,6 +1000,7 @@ void safe_release() {
 	SafeRelease(&TextFont);
 	SafeRelease(&BitmapRenderTarget);
 	SafeRelease(&BitmapRenderTarget2);
+ 
 }
 
 
@@ -922,34 +1109,6 @@ ptr step_func(ptr lpParam) {
 
 
 
-void add_d2d_commands() {
-
-	Sforeign_symbol("d2d_matrix_identity", static_cast<ptr>(d2d_matrix_identity));
-	Sforeign_symbol("d2d_matrix_rotate", static_cast<ptr>(d2d_matrix_rotate));
-	Sforeign_symbol("d2d_render_sprite", static_cast<ptr>(d2d_render_sprite));
-	Sforeign_symbol("d2d_render_sprite_rotscale", static_cast<ptr>(d2d_render_sprite_rotscale));
-	Sforeign_symbol("d2d_render_sprite_sheet", static_cast<ptr>(d2d_render_sprite_sheet));
-	Sforeign_symbol("d2d_render_sprite_sheet_rot_scale", static_cast<ptr>(d2d_render_sprite_sheet_rot_scale));
-	Sforeign_symbol("d2d_load_sprites", static_cast<ptr>(d2d_load_sprites));
-	Sforeign_symbol("d2d_write_text", static_cast<ptr>(d2d_write_text));
-	Sforeign_symbol("d2d_set_font", static_cast<ptr>(d2d_set_font));
-	Sforeign_symbol("d2d_color", static_cast<ptr>(d2d_color));
-	Sforeign_symbol("d2d_fill_color", static_cast<ptr>(d2d_fill_color));
-	Sforeign_symbol("d2d_rectangle", static_cast<ptr>(d2d_rectangle));
-	Sforeign_symbol("d2d_fill_rectangle", static_cast<ptr>(d2d_fill_rectangle));
-	Sforeign_symbol("d2d_ellipse", static_cast<ptr>(d2d_ellipse));
-	Sforeign_symbol("d2d_fill_ellipse", static_cast<ptr>(d2d_fill_ellipse));
-	Sforeign_symbol("d2d_line", static_cast<ptr>(d2d_line));
-	Sforeign_symbol("d2d_render", static_cast<ptr>(d2d_render));
-	Sforeign_symbol("d2d_show", static_cast<ptr>(d2d_show));
-	Sforeign_symbol("d2d_clear", static_cast<ptr>(d2d_clear));
-	Sforeign_symbol("d2d_set_stroke_width", static_cast<ptr>(d2d_set_stroke_width));
-	Sforeign_symbol("d2d_image_size", static_cast<ptr>(d2d_image_size));
-	Sforeign_symbol("d2d_release", static_cast<ptr>(d2d_release));
-	Sforeign_symbol("step", static_cast<ptr>(step_func));
-}
-
-
 
 // constructor
 CD2DView::CD2DView()
@@ -1003,10 +1162,6 @@ void CD2DView::Swap(int n)
 	swap_buffers(n);
 }
 
-void CD2DView::AddCommands()
-{
-	add_d2d_commands();
-}
 
 void CD2DView::PreCreate(CREATESTRUCT& cs)
 {
@@ -1152,4 +1307,48 @@ LRESULT CD2DView::WndProc(UINT msg, WPARAM wparam, LPARAM lparam)
 
 
     return WndProcDefault(msg, wparam, lparam);
+}
+
+
+
+void add_d2d_commands() {
+
+	Sforeign_symbol("d2d_matrix_identity", static_cast<ptr>(d2d_matrix_identity));
+	Sforeign_symbol("d2d_matrix_rotate", static_cast<ptr>(d2d_matrix_rotate));
+	Sforeign_symbol("d2d_render_sprite", static_cast<ptr>(d2d_render_sprite));
+	Sforeign_symbol("d2d_render_sprite_rotscale", static_cast<ptr>(d2d_render_sprite_rotscale));
+	Sforeign_symbol("d2d_render_sprite_sheet", static_cast<ptr>(d2d_render_sprite_sheet));
+	Sforeign_symbol("d2d_render_sprite_sheet_rot_scale", static_cast<ptr>(d2d_render_sprite_sheet_rot_scale));
+	Sforeign_symbol("d2d_load_sprites", static_cast<ptr>(d2d_load_sprites));
+	Sforeign_symbol("d2d_write_text", static_cast<ptr>(d2d_write_text));
+	Sforeign_symbol("d2d_zwrite_text", static_cast<ptr>(d2d_zwrite_text));
+	Sforeign_symbol("d2d_text_mode", static_cast<ptr>(d2d_text_mode));
+	Sforeign_symbol("d2d_set_font", static_cast<ptr>(d2d_set_font));
+	Sforeign_symbol("d2d_color", static_cast<ptr>(d2d_color));
+	Sforeign_symbol("d2d_fill_color", static_cast<ptr>(d2d_fill_color));
+	Sforeign_symbol("d2d_rectangle", static_cast<ptr>(d2d_rectangle));
+	Sforeign_symbol("d2d_zrectangle", static_cast<ptr>(d2d_zrectangle));
+	Sforeign_symbol("d2d_fill_rectangle", static_cast<ptr>(d2d_fill_rectangle));
+	Sforeign_symbol("d2d_zfill_rectangle", static_cast<ptr>(d2d_zfill_rectangle));
+	Sforeign_symbol("d2d_ellipse", static_cast<ptr>(d2d_ellipse));
+	Sforeign_symbol("d2d_zellipse", static_cast<ptr>(d2d_zellipse));
+	Sforeign_symbol("d2d_fill_ellipse", static_cast<ptr>(d2d_fill_ellipse));
+	Sforeign_symbol("d2d_zfill_ellipse", static_cast<ptr>(d2d_zfill_ellipse));
+	Sforeign_symbol("d2d_line", static_cast<ptr>(d2d_line));
+	Sforeign_symbol("d2d_zline", static_cast<ptr>(d2d_zline));
+	Sforeign_symbol("d2d_render", static_cast<ptr>(d2d_render));
+	Sforeign_symbol("d2d_show", static_cast<ptr>(d2d_show));
+	Sforeign_symbol("d2d_save", static_cast<ptr>(d2d_save)); 
+	Sforeign_symbol("d2d_clear", static_cast<ptr>(d2d_clear));
+	Sforeign_symbol("d2d_set_stroke_width", static_cast<ptr>(d2d_set_stroke_width));
+	Sforeign_symbol("d2d_image_size", static_cast<ptr>(d2d_image_size));
+	Sforeign_symbol("d2d_release", static_cast<ptr>(d2d_release));
+	Sforeign_symbol("d2d_draw_func", static_cast<ptr>(d2d_draw_func));
+	Sforeign_symbol("step", static_cast<ptr>(step_func));
+	Sforeign_symbol("graphics_keys", static_cast<ptr>(graphics_keys));
+}
+
+void CD2DView::AddCommands()
+{
+	add_d2d_commands();
 }

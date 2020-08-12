@@ -1,4 +1,5 @@
 #pragma once
+#include "scheme.h"
 class Engine
 {
 public:
@@ -7,7 +8,7 @@ public:
 
 	static void Start();
 	static void Stop();
-
+	static ptr Run(ptr f);
 
 };
 

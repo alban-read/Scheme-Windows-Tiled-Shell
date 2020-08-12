@@ -298,8 +298,6 @@
 	(lambda()
 	 (set-every-function 0 0 0 '())))		
 	
-
-
  
 ;; direct 2d
 
@@ -328,7 +326,6 @@
  (lambda (x y)
    ((foreign-procedure "d2d_render"
     (float float) ptr) x y)))
- 
 
 (define font
  (lambda (face size)
@@ -355,30 +352,62 @@
    ((foreign-procedure "d2d_write_text"
     (float float string) ptr) x y s)))
 
-
+(define batch-write-text
+ (lambda (x y s)
+   ((foreign-procedure "d2d_zwrite_text"
+    (float float string) ptr) x y s)))
+	
 (define draw-line
  (lambda (x y x1 y1)
    ((foreign-procedure "d2d_line"
     (float float float float) ptr) x y x1 y1)))
+	
+(define batch-draw-line
+ (lambda (x y x1 y1)
+   ((foreign-procedure "d2d_zline"
+    (float float float float) ptr) x y x1 y1)))
+
 
 (define draw-rect
  (lambda (x y w h)
    ((foreign-procedure "d2d_rectangle"
+    (float float float float) ptr) x y w h)))
+	
+(define batch-draw-rect
+ (lambda (x y w h)
+   ((foreign-procedure "d2d_zrectangle"
     (float float float float) ptr) x y w h)))
 
 (define draw-ellipse
  (lambda (x y w h)
    ((foreign-procedure "d2d_ellipse"
     (float float float float) ptr) x y w h)))
+	
+(define batch-draw-ellipse
+ (lambda (x y w h)
+   ((foreign-procedure "d2d_zellipse"
+    (float float float float) ptr) x y w h)))
+
 
 (define fill-ellipse
  (lambda (x y w h)
    ((foreign-procedure "d2d_fill_ellipse"
     (float float float float) ptr) x y w h)))
+	
+(define batch-fill-ellipse
+ (lambda (x y w h)
+   ((foreign-procedure "d2d_zfill_ellipse"
+    (float float float float) ptr) x y w h)))
+
 
 (define fill-rect
  (lambda (x y w h)
    ((foreign-procedure "d2d_fill_rectangle"
+    (float float float float) ptr) x y w h)))
+	
+(define batch-fill-rect
+ (lambda (x y w h)
+   ((foreign-procedure "d2d_zfill_rectangle"
     (float float float float) ptr) x y w h)))
 
  (define fill-colour
@@ -411,9 +440,21 @@
     (int float float  ) 
 		ptr) n dx dy)))	
 		
+(define batch-draw-sprite
+ (lambda (n dx dy)
+   ((foreign-procedure "d2d_zrender_sprite"
+    (int float float  ) 
+		ptr) n dx dy)))	
+		
 (define draw-scaled-rotated-sprite
  (lambda (n dx dy s a)
    ((foreign-procedure "d2d_render_sprite_rotscale"
+    (int float float float float  ) 
+		ptr) n dx dy s a)))	
+	
+(define batch-draw-scaled-rotated-sprite
+ (lambda (n dx dy s a)
+   ((foreign-procedure "d2d_zrender_sprite_rotscale"
     (int float float float float  ) 
 		ptr) n dx dy s a)))	
 	
@@ -427,6 +468,16 @@
 		ptr) n dx dy dh dw
 			sx sy sh sw scale)))		
 			
+(define batch-render-sprite
+ (lambda (n dx dy dh dw
+            sx sy sh sw scale)
+   ((foreign-procedure "d2d_zrender_sprite_sheet"
+    (int float float float float 
+		 float float float float
+		 float) 
+		ptr) n dx dy dh dw
+			sx sy sh sw scale)))	
+			
 (define render-sprite-scale-rot
  (lambda (n dx dy dh dw
             sx sy sh sw scale rot x2 y2)
@@ -437,6 +488,22 @@
 		ptr) n dx dy dh dw
 			sx sy sh sw scale rot x2 y2)))	
 			
+(define batch-render-sprite-scale-rot
+ (lambda (n dx dy dh dw
+            sx sy sh sw scale rot x2 y2)
+   ((foreign-procedure "d2d_zrender_sprite_sheet_rot_scale"
+    (int float float float float 
+		 float float float float
+		 float float float float) 
+		ptr) n dx dy dh dw
+			sx sy sh sw scale rot x2 y2)))	
+			
+(define draw-batch 
+  (lambda (f)
+   ((foreign-procedure "d2d_draw_func"
+    (ptr) ptr) f)))
+		
+
 ;; used to track keys in graphics window
 (define graphics-keys
  (lambda ()

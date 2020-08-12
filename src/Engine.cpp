@@ -310,6 +310,26 @@ void stop_every() {
 	}
 }
 
+ptr run_func(ptr f) {
+	Slock_object(f);
+	ptr result = Snil;
+	WaitForSingleObject(g_script_mutex, INFINITE);
+	try {
+		if (Sprocedurep(f)) {
+			result=Scall0(f);
+			Sunlock_object(f);
+		}
+	}
+	catch (const CException& e)
+	{
+		Sunlock_object(f);
+		ReleaseMutex(g_script_mutex);
+		return result;
+	}
+	ReleaseMutex(g_script_mutex);
+	return result;
+}
+
 
 int swap_mode;
 VOID CALLBACK run_every(PVOID lpParam, BOOLEAN TimerOrWaitFired) {
@@ -474,4 +494,9 @@ void Engine::Stop()
 {
 	cancel_commands();
 	stop_every();
+}
+
+ptr Engine::Run(ptr f)
+{
+	return run_func(f);
 }

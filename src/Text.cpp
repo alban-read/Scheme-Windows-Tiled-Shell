@@ -61,9 +61,9 @@ void set_a_style(HWND h, int style, COLORREF fore, COLORREF back = RGB(0xFF, 0xF
 }
 
 
-
+// scheme functions and macros
 static const char g_scheme[] =
-"abs any append append! apply assoc assq assv begin boolean? "
+"abs and any append append! apply assoc assq assv begin boolean? "
 "caaaar caaadr caaar caadar caaddr caadr caar cadaar cadadr cadar caddar cadddr caddr cadr car "
 "case case-lambda call-with-values catch "
 "cdaaar cdaadr cdaar cdadar cdaddr cdadr cdar cddaar cddadr cddar cdddar cddddr cdddr cddr cdr "
@@ -75,10 +75,10 @@ static const char g_scheme[] =
 "if in inexact? integer? integer->char import iota "
 "lambda last-pair length let let* letrec let-rec list list? list-ref  list->string list-tail "
 "map max member memq memv min mod"
-"negative? null? numerator "
+"negative? nil not null? numerator "
 "pair? positive? procedure? "
-"quasiquote quote quotient "
-"read real? remainder reverse "
+"quasiquote quote quotient or "
+"random read real? remainder reverse "
 "seq sequence set! set-car! set-cdr! sqrt step sublist symbol? "
 "string? string=? string-append string-copy string-length string->list string-ref  string-set! substring syntax-rules "
 "to try truncate  "
@@ -86,8 +86,17 @@ static const char g_scheme[] =
 "values vector vector? vector-length vector->list vector-ref vector-set! "
 "while when where write ";
 
+// commands that have been added by this app.
 static const char g_scheme2[] =
-"and and-let* nil not or null? ";
+"after " 
+"batch-draw-ellipse batch-draw-line batch-draw-rect batch-draw-scaled-rotated-sprite "
+"batch-draw-sprite batch-fill-ellipse batch-fill-rect batch-render-sprite batch-render-sprite-scale-rot "
+"clear-image draw-ellipse draw-line draw-rect draw-scaled-rotated-sprite draw-sprite " 
+"every font graphics-keys fill-colour fill-ellipse fill-rect identity image-size "
+"line-colour load-sound load-sprites "
+"pen-width play-sound render render-sprite render-sprite-scale-rot release rotate  "
+"set-every-function show stop-every write-text ";
+
 static const char g_scheme3[] =
 " ";
 static const char g_scheme4[] =
@@ -104,7 +113,7 @@ struct s_scintilla_colors
 };
 
 static s_scintilla_colors scheme[] =
-{	//	item					colour				sz	face					bold	italic
+{	//	item					colour				sz	face		bold	italic
 	{ SCE_C_COMMENT,          RGB(160,82,45),		11, "Consolas",	false, true },
 	{ SCE_C_COMMENTLINE,      RGB(184,138,0),		11, "Consolas",	false, false },
 	{ SCE_C_COMMENTDOC,       RGB(32,178,170),		11, "Consolas",	false, false },
@@ -618,7 +627,7 @@ CContainText::CContainText()
 {
 	SetDockCaption(_T("Evaluator View"));
 	SetTabText(_T("Evaluator"));
-	SetTabIcon(IDI_TEXT);
+	SetTabIcon(IDI_LAMBDA);
 	SetView(m_viewText);
 }
 

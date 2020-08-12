@@ -2,7 +2,12 @@
 #include "Utility.h"
 #include <codecvt>
 #include "ContainerApp.h"
+#include <Windows.h>
+#include "scheme.h"
+#include <WinCrypt.h>
+#pragma comment(lib, "crypt32.lib")
 
+ 
 
 int utf8_string_length(const char* s)
 {

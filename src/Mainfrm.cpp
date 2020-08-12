@@ -108,6 +108,13 @@ BOOL CMainFrame::OnCommand(WPARAM wparam, LPARAM lparam)
 	case IDM_HELP_ABOUT:        return OnHelp();
 	case IDM_HIDE_SINGLE_TAB:   return OnHideSingleTab();
 
+
+	case IDM_EDIT_COPY:
+	{
+		const auto focus = ::GetFocus();
+		SendMessage(focus, WM_COPY, 0, 0);
+		break;
+	}
 	case IDM_EDIT_CUT:
 	{
 		const auto focus = ::GetFocus();
