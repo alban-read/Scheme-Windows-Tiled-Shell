@@ -352,6 +352,16 @@
    ((foreign-procedure "d2d_write_text"
     (float float string) ptr) x y s)))
 
+(define batch-skew
+ (lambda (x y x1 y1)
+   ((foreign-procedure "d2d_zmatrix_skew"
+    (float float float float) ptr) x y x1 y1)))
+
+(define batch-translate
+ (lambda (x y)
+   ((foreign-procedure "d2d_zmatrix_translate"
+    (float float) ptr) x y)))
+
 (define batch-write-text
  (lambda (x y s)
    ((foreign-procedure "d2d_zwrite_text"
