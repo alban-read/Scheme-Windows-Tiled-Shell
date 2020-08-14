@@ -456,18 +456,8 @@
    ((foreign-procedure "d2d_color"
     (float float float float) ptr) r g b a)))
 	
- (define free-sprites
- (lambda ()
-   ((foreign-procedure "d2d_FreeAllSprites"
-    () ptr))))
+ 
  			
-			
- (define free-sprite
- (lambda (n)
-   ((foreign-procedure "d2d_FreeSpriteInBank"
-    (int) ptr) n)))
-	
-	
 (define make-sprite
  (lambda (n w h f)
    ((foreign-procedure "d2d_MakeSpriteInBank"
