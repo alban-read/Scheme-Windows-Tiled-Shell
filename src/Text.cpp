@@ -91,11 +91,11 @@ static const char g_scheme2[] =
 "after " 
 "batch-draw-ellipse batch-draw-line batch-draw-rect batch-draw-scaled-rotated-sprite "
 "batch-draw-sprite batch-fill-ellipse batch-fill-rect batch-render-sprite batch-render-sprite-scale-rot "
-"clear-image draw-ellipse draw-line draw-rect draw-scaled-rotated-sprite draw-sprite " 
+"clear-image draw-into-sprite draw-ellipse draw-line draw-rect draw-scaled-rotated-sprite draw-sprite " 
 "every font graphics-keys fill-colour fill-ellipse fill-rect identity image-size "
-"line-colour load-sound load-sprites "
+"line-colour load-sound load-sprites make-sprite "
 "pen-width play-sound render render-sprite render-sprite-scale-rot release rotate  "
-"set-every-function show stop-every write-text ";
+"set-every-function show stop-every write-text draw-into-sprite ";
 
 static const char g_scheme3[] =
 " ";
