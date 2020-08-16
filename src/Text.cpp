@@ -63,7 +63,9 @@ void set_a_style(HWND h, int style, COLORREF fore, COLORREF back = RGB(0xFF, 0xF
 
 // scheme functions and macros
 static const char g_scheme[] =
-"abs and any append append! apply assoc assq assv begin boolean? "
+"abs " 
+
+"and any append append! apply assoc assq assv begin boolean? "
 "caaaar caaadr caaar caadar caaddr caadr caar cadaar cadadr cadar caddar cadddr caddr cadr car "
 "case case-lambda call-with-values catch "
 "cdaaar cdaadr cdaar cdadar cdaddr cdadr cdar cddaar cddadr cddar cdddar cddddr cdddr cddr cdr "
@@ -88,14 +90,15 @@ static const char g_scheme[] =
 
 // commands that have been added by this app.
 static const char g_scheme2[] =
+"add-draw-sprite add-scaled-rotated-sprite "
 "after " 
 "batch-draw-ellipse batch-draw-line batch-draw-rect batch-draw-scaled-rotated-sprite "
 "batch-draw-sprite batch-fill-ellipse batch-fill-rect batch-render-sprite batch-render-sprite-scale-rot "
-"clear-image draw-into-sprite draw-ellipse draw-line draw-rect draw-scaled-rotated-sprite draw-sprite " 
+"clear-image clear-sprite-command clear-sprite-commands draw-into-sprite draw-ellipse draw-line draw-rect draw-scaled-rotated-sprite draw-sprite " 
 "every font graphics-keys fill-colour fill-ellipse fill-rect identity image-size "
 "line-colour load-sound load-sprites make-sprite "
 "pen-width play-sound render render-sprite render-sprite-scale-rot release rotate  "
-"set-every-function show stop-every write-text draw-into-sprite ";
+"set-draw-sprite set-every-function show stop-every write-text draw-into-sprite ";
 
 static const char g_scheme3[] =
 " ";

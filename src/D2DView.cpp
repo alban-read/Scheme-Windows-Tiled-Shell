@@ -13,6 +13,7 @@
 #include <wincodec.h>
 #include <wrl.h>
 #include <wil/com.h>
+#include <deque>
 
 #define CALL0(who) Scall0(Stop_level_value(Sstring_to_symbol(who)))
 #define CALL1(who, arg) Scall1(Stop_level_value(Sstring_to_symbol(who)), arg)
@@ -60,6 +61,19 @@ float g_DPIScaleX = 1.0f;
 float g_DPIScaleY = 1.0f;
 float graphics_pen_width = static_cast<float>(1.2);
 
+
+// fill 
+float fill_r = 0.0f;
+float fill_g = 0.0f;
+float fill_b = 0.0f;
+float fill_a = 0.0f;
+// line
+float line_r = 0.0f;
+float line_g = 0.0f;
+float line_b = 0.0f;
+float line_a = 0.0f;
+
+
 #pragma warning(disable : 4996)
 
 void d2d_DPIScale(ID2D1Factory* pFactory)
@@ -76,6 +90,7 @@ void d2d_set_main_window(HWND w) {
 
 ptr d2d_color(float r, float g, float b, float a) {
 
+	line_r = r; line_g = g; line_b = b; line_a = a;
 	if (pRenderTarget == NULL)
 	{
 		return Snil;
@@ -91,6 +106,7 @@ ptr d2d_color(float r, float g, float b, float a) {
 
 ptr d2d_fill_color(float r, float g, float b, float a) {
 
+	fill_r = r; fill_g = g; fill_b = b; fill_a = a;
 	if (pRenderTarget == nullptr)
 	{
 		return Snil;
@@ -247,9 +263,10 @@ ptr d2d_save(char* filename) {
 	return Snil;
 }
 
-
+void render_sprite_commands();
 ptr d2d_show(int n)
 {
+	if (n == 2) render_sprite_commands();  
 	swap_buffers(n);
 	if (main_window != nullptr)
 		PostMessageW(main_window, WM_USER + 501, (WPARAM)0, (LPARAM)0);
@@ -973,9 +990,6 @@ ptr d2d_zrender_sprite_sheet_rot_scale(int n, float dx, float dy, float dw, floa
 	return Strue;
 }
 
-
-
-
 // from sheet n; at sx, sy to dx, dy, w,h scale up
 ptr d2d_render_sprite_sheet_rot_scale(int n, float dx, float dy, float dw, float dh,
 	float sx, float sy, float sw, float sh, float scale, float a, float x2, float y2) {
@@ -1097,8 +1111,475 @@ void safe_release() {
 	SafeRelease(&TextFont);
 	SafeRelease(&BitmapRenderTarget);
 	SafeRelease(&BitmapRenderTarget2);
- 
 }
+
+const int ignore_clip = 200;
+const int sprite_command_size=8192;
+struct sprite_command {
+	bool active=false;
+	bool persist = false;
+	float r;
+	float g;
+	float b;
+	float a;
+	float x;
+	float y;
+	float w;
+	float h;
+	float sx;
+	float sy;
+	float sw;
+	float sh;
+	float xn = 0.0f;
+	float yn = 0.0f;
+	float s;
+	float angle;
+	int	bank;
+	int render_type;
+	int f = 0;
+	std::wstring text;
+};
+
+sprite_command sprite_commands[sprite_command_size];
+
+ptr set_draw_sprite(int c, int n, float x, float y) {
+
+	if (x > prefer_width+ignore_clip) return Snil;
+	if (x < -ignore_clip) return Snil;
+	if (y < -ignore_clip) return Snil;
+	if (y > prefer_height+ignore_clip) return Snil;
+
+	if (c > sprite_command_size - 1) {
+		return Snil;
+	}
+	if (n > bank_size - 1) {
+		return Snil;
+	}
+	sprite_commands[c].active = true;
+	sprite_commands[c].bank = n;
+	sprite_commands[c].x = x;
+	sprite_commands[c].y = y;
+	sprite_commands[c].render_type = 1;  
+	return Strue;
+}
+
+ptr add_draw_sprite(int n, float x, float y) {
+	
+	if (x > prefer_width + ignore_clip) return Snil;
+	if (x < -ignore_clip) return Snil;
+	if (y < -ignore_clip) return Snil;
+	if (y > prefer_height + ignore_clip) return Snil;
+
+	int c = 1;
+	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
+	if (c > sprite_command_size - 1) {
+		return Snil;
+	}
+	sprite_commands[c].active = true;
+	sprite_commands[c].bank = n;
+	sprite_commands[c].x = x;
+	sprite_commands[c].y = y;
+	sprite_commands[c].render_type = 1;
+	return Strue;
+}
+
+
+ptr add_draw_rect(float x, float y, float w, float h) {
+
+	if (x > prefer_width + ignore_clip) return Snil;
+	if (x < -ignore_clip) return Snil;
+	if (y < -ignore_clip) return Snil;
+	if (y > prefer_height + ignore_clip) return Snil;
+
+	int c = 1;
+	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
+	if (c > sprite_command_size - 1) {
+		return Snil;
+	}
+	sprite_commands[c].active = true;
+	sprite_commands[c].x = x;
+	sprite_commands[c].y = y;
+	sprite_commands[c].w = w;
+	sprite_commands[c].h = h;
+	sprite_commands[c].render_type = 20;
+	return Strue;
+}
+
+ptr add_fill_rect(float x, float y, float w, float h) {
+
+	if (x > prefer_width + ignore_clip) return Snil;
+	if (x < -ignore_clip) return Snil;
+	if (y < -ignore_clip) return Snil;
+	if (y > prefer_height + ignore_clip) return Snil;
+
+	int c = 1;
+	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
+	if (c > sprite_command_size - 1) {
+		return Snil;
+	}
+	sprite_commands[c].active = true;
+	sprite_commands[c].x = x;
+	sprite_commands[c].y = y;
+	sprite_commands[c].w = w;
+	sprite_commands[c].h = h;
+	sprite_commands[c].render_type = 21;
+	return Strue;
+}
+
+ptr add_ellipse (float x, float y, float w, float h) {
+
+	if (x > prefer_width + ignore_clip) return Snil;
+	if (x < -ignore_clip) return Snil;
+	if (y < -ignore_clip) return Snil;
+	if (y > prefer_height + ignore_clip) return Snil;
+
+	int c = 1;
+	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
+	if (c > sprite_command_size - 1) {
+		return Snil;
+	}
+	sprite_commands[c].active = true;
+	sprite_commands[c].x = x;
+	sprite_commands[c].y = y;
+	sprite_commands[c].w = w;
+	sprite_commands[c].h = h;
+	sprite_commands[c].render_type = 22;
+	return Strue;
+}
+
+ptr add_fill_ellipse(float x, float y, float w, float h) {
+
+	if (x > prefer_width + ignore_clip) return Snil;
+	if (x < -ignore_clip) return Snil;
+	if (y < -ignore_clip) return Snil;
+	if (y > prefer_height + ignore_clip) return Snil;
+
+	int c = 1;
+	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
+	if (c > sprite_command_size - 1) {
+		return Snil;
+	}
+	sprite_commands[c].active = true;
+	sprite_commands[c].x = x;
+	sprite_commands[c].y = y;
+	sprite_commands[c].w = w;
+	sprite_commands[c].h = h;
+	sprite_commands[c].render_type = 23;
+	return Strue;
+}
+
+ptr add_line(float x, float y, float w, float h) {
+
+	if (x > prefer_width + ignore_clip) return Snil;
+	if (x < -ignore_clip) return Snil;
+	if (y < -ignore_clip) return Snil;
+	if (y > prefer_height + ignore_clip) return Snil;
+
+	int c = 1;
+	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
+	if (c > sprite_command_size - 1) {
+		return Snil;
+	}
+	sprite_commands[c].active = true;
+	sprite_commands[c].x = x;
+	sprite_commands[c].y = y;
+	sprite_commands[c].w = w;
+	sprite_commands[c].h = h;
+	sprite_commands[c].render_type = 24;
+	return Strue;
+}
+
+ptr add_clear_image(float r, float g, float b, float a) {
+
+	int c = 1;
+	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
+	if (c > sprite_command_size - 1) {
+		return Snil;
+	}
+	sprite_commands[c].active = true;
+	sprite_commands[c].r = r;
+	sprite_commands[c].g = g;
+	sprite_commands[c].b = b;
+	sprite_commands[c].a = a;
+	sprite_commands[c].render_type = 8;
+	return Strue;
+}
+
+ptr add_line_colour(float r, float g, float b, float a) {
+
+	int c = 1;
+	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
+	if (c > sprite_command_size - 1) {
+		return Snil;
+	}
+	sprite_commands[c].active = true;
+	sprite_commands[c].r = r;
+	sprite_commands[c].g = g;
+	sprite_commands[c].b = b;
+	sprite_commands[c].a = a;
+	sprite_commands[c].render_type = 10;
+	return Strue;
+}
+
+ptr add_fill_colour(float r, float g, float b, float a) {
+
+	int c = 1;
+	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
+	if (c > sprite_command_size - 1) {
+		return Snil;
+	}
+	sprite_commands[c].active = true;
+	sprite_commands[c].r = r;
+	sprite_commands[c].g = g;
+	sprite_commands[c].b = b;
+	sprite_commands[c].a = a;
+	sprite_commands[c].render_type = 11;
+	return Strue;
+}
+
+ptr add_pen_width(float w) {
+
+	int c = 1;
+	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
+	if (c > sprite_command_size - 1) {
+		return Snil;
+	}
+	sprite_commands[c].active = true;
+	sprite_commands[c].w = w;
+	sprite_commands[c].render_type = 12;
+	return Strue;
+}
+
+ptr add_write_text(float x, float y, char*s) {
+	int c = 1;
+	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
+	if (c > sprite_command_size - 1) {
+		return Snil;
+	}
+	sprite_commands[c].active = true;
+	sprite_commands[c].x = x;
+	sprite_commands[c].y = y;
+
+	sprite_commands[c].r = fill_r;
+	sprite_commands[c].g = fill_g;
+	sprite_commands[c].b = fill_b;
+	sprite_commands[c].a = fill_a;
+
+	sprite_commands[c].text = Utility::widen(s);
+	sprite_commands[c].render_type = 9;
+	return Strue;
+}
+
+
+ptr add_scaled_rotated_sprite(int n, float x, float y, float a, float s) {
+	
+	if (x > prefer_width + ignore_clip) return Snil;
+	if (x < -ignore_clip) return Snil;
+	if (y < -ignore_clip) return Snil;
+	if (y > prefer_height + ignore_clip) return Snil;
+	
+	int c = 1;
+	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
+	if (c > sprite_command_size - 1) {
+		return Snil;
+	}
+	sprite_commands[c].active = true;
+	sprite_commands[c].bank = n;
+	sprite_commands[c].x = x;
+	sprite_commands[c].y = y;
+	sprite_commands[c].angle = a;
+	sprite_commands[c].s = s;
+	sprite_commands[c].render_type = 2;
+	return Strue;
+}
+
+ptr add_render_sprite_sheet(int n, 
+	float dx, float dy, float dw, float dh,
+	float sx, float sy, float sw, float sh, 
+	float scale) {
+
+	if (dx > prefer_width + ignore_clip) return Snil;
+	if (dx < -ignore_clip) return Snil;
+	if (dy < -ignore_clip) return Snil;
+	if (dy > prefer_height + ignore_clip) return Snil;
+
+	int c = 1;
+	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
+	if (c > sprite_command_size - 1) {
+		return Snil;
+	}
+	sprite_commands[c].active = true;
+	sprite_commands[c].bank = n;
+	sprite_commands[c].x = dx;
+	sprite_commands[c].y = dy;
+	sprite_commands[c].w = dw;
+	sprite_commands[c].h = dh;
+	sprite_commands[c].sx = sx;
+	sprite_commands[c].sy = sy;
+	sprite_commands[c].sw = sw;
+	sprite_commands[c].sh = sh; 
+	sprite_commands[c].s = scale;
+	sprite_commands[c].render_type = 3;
+	return Strue;
+}
+
+
+ptr clear_all_draw_sprite() {
+	for (int i = 0; i < sprite_command_size - 1; i++) {
+		sprite_commands[i].active = false;
+		sprite_commands[i].bank = bank_size + 1;
+		sprite_commands[i].render_type = 0;
+	}
+	return Snil;
+}
+
+ptr clear_draw_sprite(int c) {
+	if (c > sprite_command_size - 1) {
+		return Snil;
+	}
+	sprite_commands[c].active = false;
+	sprite_commands[c].bank = bank_size+1;
+	sprite_commands[c].render_type = 0;
+}
+
+void do_write_text(float x, float y, std::wstring s) {
+	const auto len = s.length();
+	D2D1_RECT_F layoutRect = D2D1::RectF(x, y, prefer_width - x, prefer_height - y);
+	ActiveRenderTarget->DrawTextW(s.c_str(), len, TextFont, layoutRect, pfillColourBrush);
+}
+
+void do_draw_sprite(int n, float x, float y) {
+	d2d_zrender_sprite(n, x, y);
+}
+
+void do_scaled_rotated_sprite(int n, float x, float y, float a, float s) {
+	d2d_zrender_sprite_rotscale(n, x, y, a, s);
+}
+
+void do_render_sprite_sheet(int n, float dx, float dy, float dw, float dh,
+	float sx, float sy, float sw, float sh, float scale) {
+	d2d_zrender_sprite_sheet(n, dx, dy, dw, dh,
+		sx, sy, sw, sh, scale);
+}
+
+void render_sprite_commands() {
+
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		return;
+	}
+	ActiveRenderTarget->BeginDraw();
+	for (int i = 1; i < sprite_command_size - 1; i++) {
+		if (sprite_commands[i].active == true) {
+			switch (sprite_commands[i].render_type) {
+			case 1:
+				do_draw_sprite(
+					sprite_commands[i].bank,
+					sprite_commands[i].x, 
+					sprite_commands[i].y);
+				break;
+			case 2:
+				do_scaled_rotated_sprite(
+					sprite_commands[i].bank,
+					sprite_commands[i].x,
+					sprite_commands[i].y,
+					sprite_commands[i].angle,
+					sprite_commands[i].s); 
+				break;
+			case 3:
+				do_render_sprite_sheet(
+					sprite_commands[i].bank,
+					sprite_commands[i].x,
+					sprite_commands[i].y,
+					sprite_commands[i].w,
+					sprite_commands[i].h,
+					sprite_commands[i].sx,
+					sprite_commands[i].sy,
+					sprite_commands[i].sw,
+					sprite_commands[i].sh,
+					sprite_commands[i].s);
+				break;
+			case 8:
+				d2d_zclear(
+					sprite_commands[i].r,
+					sprite_commands[i].g,
+					sprite_commands[i].b,
+					sprite_commands[i].a);
+				break;
+			case 9:
+				do_write_text(
+					sprite_commands[i].x,
+					sprite_commands[i].y,
+					sprite_commands[i].text);
+				break;
+			case 10:
+				d2d_color(
+					sprite_commands[i].r,
+					sprite_commands[i].g,
+					sprite_commands[i].b,
+					sprite_commands[i].a);
+				break;
+			case 11:
+				d2d_fill_color(
+					sprite_commands[i].r,
+					sprite_commands[i].g,
+					sprite_commands[i].b,
+					sprite_commands[i].a);
+				break;
+			case 12:
+				d2d_stroke_width = sprite_commands[i].w; 
+				break;
+			case 20:
+				d2d_zrectangle(
+					sprite_commands[i].x,
+					sprite_commands[i].y,
+					sprite_commands[i].w,
+					sprite_commands[i].h);
+				break;
+			case 21:
+				d2d_zfill_rectangle(
+					sprite_commands[i].x,
+					sprite_commands[i].y,
+					sprite_commands[i].w,
+					sprite_commands[i].h);
+				break;
+			case 22:
+				d2d_zellipse(
+					sprite_commands[i].x,
+					sprite_commands[i].y,
+					sprite_commands[i].w,
+					sprite_commands[i].h);
+				break;
+			case 23:
+				d2d_zfill_ellipse(
+					sprite_commands[i].x,
+					sprite_commands[i].y,
+					sprite_commands[i].w,
+					sprite_commands[i].h);
+				break;
+			case 24:
+				d2d_zline(
+					sprite_commands[i].x,
+					sprite_commands[i].y,
+					sprite_commands[i].w,
+					sprite_commands[i].h);
+				break;
+			}
+		}
+	}
+	ActiveRenderTarget->EndDraw();
+	// clear for next step
+	for (int i = 0; i < sprite_command_size - 1; i++) {
+		sprite_commands[i].active = false;
+		sprite_commands[i].bank = bank_size + 1;
+		sprite_commands[i].render_type = 0;
+		sprite_commands[i].text.clear();
+	}
+}
+
+
+
+
+
 
 ptr d2d_image_size(int w, int h)
 {
@@ -1254,6 +1735,7 @@ void CD2DView::Step(ptr n)
 
 void CD2DView::Swap(int n)
 {
+	if( n==2) render_sprite_commands();
 	swap_buffers(n);
 }
 
@@ -1444,6 +1926,25 @@ void add_d2d_commands() {
 	Sforeign_symbol("d2d_release", static_cast<ptr>(d2d_release));
 	Sforeign_symbol("d2d_draw_func", static_cast<ptr>(d2d_draw_func));
 	Sforeign_symbol("step", static_cast<ptr>(step_func));
+	
+	Sforeign_symbol("add_clear_image", static_cast<ptr>(add_clear_image));
+	Sforeign_symbol("add_write_text", static_cast<ptr>(add_write_text));
+	Sforeign_symbol("add_draw_sprite", static_cast<ptr>(add_draw_sprite));
+ 
+	Sforeign_symbol("add_scaled_rotated_sprite", static_cast<ptr>(add_scaled_rotated_sprite));
+	Sforeign_symbol("set_draw_sprite", static_cast<ptr>(set_draw_sprite));
+	Sforeign_symbol("clear_draw_sprite", static_cast<ptr>(clear_draw_sprite));
+	Sforeign_symbol("clear_all_draw_sprite", static_cast<ptr>(clear_all_draw_sprite));
+
+	Sforeign_symbol("add_ellipse", static_cast<ptr>(add_ellipse));
+	Sforeign_symbol("add_fill_colour", static_cast<ptr>(add_fill_colour));
+	Sforeign_symbol("add_line_colour", static_cast<ptr>(add_line_colour));
+	Sforeign_symbol("add_fill_ellipse", static_cast<ptr>(add_fill_ellipse));
+	Sforeign_symbol("add_draw_rect", static_cast<ptr>(add_draw_rect));
+	Sforeign_symbol("add_fill_rect", static_cast<ptr>(add_fill_rect));
+	Sforeign_symbol("add_pen_width", static_cast<ptr>(add_pen_width));
+
+
 	Sforeign_symbol("d2d_zmatrix_skew", static_cast<ptr>(d2d_zmatrix_skew));
 	Sforeign_symbol("d2d_zmatrix_translate", static_cast<ptr>(d2d_zmatrix_translate));
 	Sforeign_symbol("d2d_zmatrix_transrot", static_cast<ptr>(d2d_zmatrix_transrot));

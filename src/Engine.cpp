@@ -330,6 +330,23 @@ ptr run_func(ptr f) {
 	return result;
 }
 
+// no mutex, we are called from running scheme
+ptr run_naked_func(ptr f) {
+	Slock_object(f);
+	ptr result = Snil;
+	try {
+		if (Sprocedurep(f)) {
+			result = Scall0(f);
+			Sunlock_object(f);
+		}
+	}
+	catch (const CException& e)
+	{
+		Sunlock_object(f);
+		return result;
+	}
+	return result;
+}
 
 int swap_mode;
 VOID CALLBACK run_every(PVOID lpParam, BOOLEAN TimerOrWaitFired) {
@@ -383,7 +400,7 @@ void start_every(int delay, int period, ptr p) {
 
 		try {
 			CreateTimerQueueTimer(&h_every_timer, every_timer_queue,
-				static_cast<WAITORTIMERCALLBACK>(run_every), p, delay, period, WT_EXECUTEINTIMERTHREAD);
+				static_cast<WAITORTIMERCALLBACK>(run_every), p, delay, period,WT_EXECUTEINTIMERTHREAD);
 		}
 		catch (const CException& e)
 		{
@@ -499,4 +516,9 @@ void Engine::Stop()
 ptr Engine::Run(ptr f)
 {
 	return run_func(f);
+}
+
+ptr Engine::RunNaked(ptr f)
+{
+	return run_naked_func(f);
 }

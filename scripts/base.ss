@@ -342,6 +342,11 @@
    ((foreign-procedure "d2d_set_stroke_width"
     (float) ptr) w)))	
 	
+(define add-pen-width
+ (lambda (w)
+   ((foreign-procedure "add_pen_width"
+    (float) ptr) w)))		
+	
 (define set-pen-width
  (lambda (w)
    ((foreign-procedure "d2d_set_stroke_width"
@@ -350,6 +355,12 @@
 (define write-text
  (lambda (x y s)
    ((foreign-procedure "d2d_write_text"
+    (float float string) ptr) x y s)))
+	
+	
+(define add-write-text
+ (lambda (x y s)
+   ((foreign-procedure "add_write_text"
     (float float string) ptr) x y s)))
 
 (define batch-identity
@@ -387,6 +398,11 @@
    ((foreign-procedure "d2d_line"
     (float float float float) ptr) x y x1 y1)))
 	
+(define add-draw-line
+ (lambda (x y x1 y1)
+   ((foreign-procedure "add_draw_line"
+    (float float float float) ptr) x y x1 y1)))	
+	
 (define batch-draw-line
  (lambda (x y x1 y1)
    ((foreign-procedure "d2d_zline"
@@ -398,6 +414,11 @@
    ((foreign-procedure "d2d_rectangle"
     (float float float float) ptr) x y w h)))
 	
+(define add-draw-rect
+ (lambda (x y w h)
+   ((foreign-procedure "add_draw_rect"
+    (float float float float) ptr) x y w h)))	
+
 (define batch-draw-rect
  (lambda (x y w h)
    ((foreign-procedure "d2d_zrectangle"
@@ -406,6 +427,12 @@
 (define draw-ellipse
  (lambda (x y w h)
    ((foreign-procedure "d2d_ellipse"
+    (float float float float) ptr) x y w h)))
+
+	
+(define add-draw-ellipse
+ (lambda (x y w h)
+   ((foreign-procedure "add_ellipse"
     (float float float float) ptr) x y w h)))
 	
 (define batch-draw-ellipse
@@ -419,15 +446,25 @@
    ((foreign-procedure "d2d_fill_ellipse"
     (float float float float) ptr) x y w h)))
 	
+
+(define add-fill-ellipse
+ (lambda (x y w h)
+   ((foreign-procedure "add_fill_ellipse"
+    (float float float float) ptr) x y w h)))
+	
 (define batch-fill-ellipse
  (lambda (x y w h)
    ((foreign-procedure "d2d_zfill_ellipse"
     (float float float float) ptr) x y w h)))
 
-
 (define fill-rect
  (lambda (x y w h)
    ((foreign-procedure "d2d_fill_rectangle"
+    (float float float float) ptr) x y w h)))
+	
+(define add-fill-rect
+ (lambda (x y w h)
+   ((foreign-procedure "add_fill_rect"
     (float float float float) ptr) x y w h)))
 	
 (define batch-fill-rect
@@ -440,10 +477,19 @@
    ((foreign-procedure "d2d_fill_color"
     (float float float float) ptr) r g b a)))
 	
+ (define add-fill-colour
+ (lambda (r g b a)
+   ((foreign-procedure "add_fill_colour"
+    (float float float float) ptr) r g b a)))
 	
 (define clear-image
  (lambda (r g b a)
    ((foreign-procedure "d2d_clear"
+    (float float float float) ptr) r g b a)))	
+	
+(define add-clear-image
+ (lambda (r g b a)
+   ((foreign-procedure "add_clear_image"
     (float float float float) ptr) r g b a)))	
 	
 (define batch-clear-active
@@ -456,7 +502,12 @@
    ((foreign-procedure "d2d_color"
     (float float float float) ptr) r g b a)))
 	
- (define free-sprites
+(define add-line-colour
+ (lambda (r g b a)
+   ((foreign-procedure "add_line_colour"
+    (float float float float) ptr) r g b a)))
+		
+(define free-sprites
  (lambda ()
    ((foreign-procedure "d2d_FreeAllSprites"
     () ptr))))
@@ -467,13 +518,11 @@
    ((foreign-procedure "d2d_FreeSpriteInBank"
     (int) ptr) n)))
 	
-	
 (define make-sprite
  (lambda (n w h f)
    ((foreign-procedure "d2d_MakeSpriteInBank"
     (int int int ptr) ptr) n w h f)))			
 			
- 
 (define load-sprites
  (lambda (s n)
    ((foreign-procedure "d2d_load_sprites"
@@ -493,9 +542,28 @@
     (int float float  ) 
 		ptr) n dx dy)))	
 		
+(define set-draw-sprite
+ (lambda (c n dx dy)
+   ((foreign-procedure "set_draw_sprite"
+    (int int float float  ) 
+		ptr) c n dx dy)))	
+		
+(define add-draw-sprite
+ (lambda (n dx dy)
+   ((foreign-procedure "add_draw_sprite"
+    (int float float  ) 
+		ptr) n dx dy)))	
+		
+	
 (define draw-scaled-rotated-sprite
  (lambda (n dx dy s a)
    ((foreign-procedure "d2d_render_sprite_rotscale"
+    (int float float float float  ) 
+		ptr) n dx dy s a)))	
+		
+(define add-scaled-rotated-sprite
+ (lambda (n dx dy s a)
+   ((foreign-procedure "add_scaled_rotated_sprite"
     (int float float float float  ) 
 		ptr) n dx dy s a)))	
 	
@@ -514,6 +582,17 @@
 		 float) 
 		ptr) n dx dy dh dw
 			sx sy sh sw scale)))		
+			
+			
+(define add-render-sprite
+ (lambda (n dx dy dh dw
+            sx sy sh sw scale)
+   ((foreign-procedure "add_render_sprite_sheet"
+    (int float float float float 
+		 float float float float
+		 float) 
+		ptr) n dx dy dh dw
+			sx sy sh sw scale)))	
 			
 (define batch-render-sprite
  (lambda (n dx dy dh dw
@@ -534,7 +613,7 @@
 		 float float float float) 
 		ptr) n dx dy dh dw
 			sx sy sh sw scale rot x2 y2)))	
-			
+				
 (define batch-render-sprite-scale-rot
  (lambda (n dx dy dh dw
             sx sy sh sw scale rot x2 y2)
