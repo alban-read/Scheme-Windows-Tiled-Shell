@@ -1,7 +1,7 @@
  
 ;; example just draws circles in render mode 2
  
-(define circlecount 1000)
+(define circlecount 3000)
 
 ;; make a new circle
 (define newcircle
@@ -75,13 +75,15 @@
  (lambda ()
  (try
    (begin
-	(add-fill-colour 0.0 0.0 0.0 1.0)
-	(add-fill-rect 0.0 0.0 800.0 600.0)
-	(map drawcirc circles)
 	(when (few-circles) 
 		(set! circles 
 			(newcircles circlecount)))
-	(set! circles (map move-circles circles)))
+	(set! circles (map move-circles circles))
+	;; do drawing last to overlap.
+	(add-fill-colour 0.0 0.0 0.0 1.0)
+	(add-fill-rect 0.0 0.0 800.0 600.0)
+	(map drawcirc circles)
+	(show-status))
  (catch (stop-every)))))
  
  

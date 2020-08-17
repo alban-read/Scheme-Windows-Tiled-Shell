@@ -1,17 +1,17 @@
  
-;; example just draws circles; in render mode 2
+;; example just draws circles on sprites; in render mode 2
  
 (define circlecount 1000)
 
  ;; make some circle sprites
-(for s from 1 to 500
+(for s from 1 to 1000
  (make-sprite s 80 80 
 	(lambda ()
-		(pen-width 2.0)
+		(pen-width 2.5)
 		(fill-colour 
-			(random 1.0)(random 1.0)(random 1.0) 0.8)
+			(random 1.0)(random 1.0)(random 1.0) 0.9)
 		(line-colour 
-			(random 1.0)(random 1.0)(random 1.0) 0.4)
+			1.0 1.0 1.0 0.6)
 		(batch-fill-ellipse 40.0 40.0 38.0 38.0)
 		(batch-draw-ellipse 40.0 40.0 38.0 38.0))))
 
@@ -20,9 +20,9 @@
 (define newcircle
   (lambda ()
     (list
-      (list (random 800.0) (random 600.0))
+      (list (+ 200 (random 300.0)) (+ 100 (random 200.0)))
       (list (- 5.0 (random 10.0)) (- 5.0 (random 10.0)))
-      (list (random 480)))))
+      (list (+ 1 (random 5000))))))
 
 
 (define newcircles 
@@ -72,8 +72,7 @@
 
 (define show-status
  (lambda ()
-	(fill-colour 1.0 0.5 0.9 1.0)
-	(font "Calibri" 32.0)
+	(add-fill-colour 1.0 0.5 0.9 1.0)
 	(add-write-text 5.0 5.0 
 		(string-append "Circles:"
 		 (number->string
@@ -85,17 +84,17 @@
  (lambda ()
  (try
    (begin
-	(add-clear-image 0.0 0.0 0.0 1.0)
-	 
-	(map drawcirc circles)
 	(when (few-circles) 
 		(set! circles 
 			(newcircles circlecount)))
-	(set! circles (map move-circles circles)))
+	(set! circles (map move-circles circles))
+	(add-clear-image 0.2 0.2 0.2 0.5) 
+	(map drawcirc circles)
+	(show-status))
  (catch (stop-every)))))
  
  
- 
+ (font "Calibri" 34.0)
 (set-every-function 1000 33 2
 		(lambda ()
 		  (circle-step)(gc)))
