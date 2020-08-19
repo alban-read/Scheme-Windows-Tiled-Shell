@@ -21,6 +21,7 @@
 
 HWND main_window = nullptr;
 HANDLE g_image_rotation_mutex=nullptr;
+HANDLE g_sprite_commands_mutex = nullptr;
 
 float prefer_width = 800.0f;
 float prefer_height = 600.0f;
@@ -225,9 +226,8 @@ void swap_buffers(int n) {
 	temptarget = BitmapRenderTarget;
 	BitmapRenderTarget = BitmapRenderTarget2;
 	BitmapRenderTarget2 = temptarget;
-	// reset on swap
+	 
 	ActiveRenderTarget = BitmapRenderTarget;
-
 	if (main_window != nullptr) {
 
 		InvalidateRect(main_window, NULL, FALSE);
@@ -1113,8 +1113,12 @@ void safe_release() {
 	SafeRelease(&BitmapRenderTarget2);
 }
 
+
+int complexity_limit = 500;
+int commands_length;
 const int ignore_clip = 200;
 const int sprite_command_size=8192;
+
 struct sprite_command {
 	bool active=false;
 	bool persist = false;
@@ -1155,15 +1159,42 @@ ptr set_draw_sprite(int c, int n, float x, float y) {
 	if (n > bank_size - 1) {
 		return Snil;
 	}
+	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
 	sprite_commands[c].active = true;
 	sprite_commands[c].bank = n;
 	sprite_commands[c].x = x;
 	sprite_commands[c].y = y;
 	sprite_commands[c].render_type = 1;  
+	commands_length++;
+	ReleaseMutex(g_sprite_commands_mutex);
 	return Strue;
 }
 
 ptr add_draw_sprite(int n, float x, float y) {
+
+	if (x > prefer_width + ignore_clip) return Snil;
+	if (x < -ignore_clip) return Snil;
+	if (y < -ignore_clip) return Snil;
+	if (y > prefer_height + ignore_clip) return Snil;
+	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
+	int c = 1;
+	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
+	if (c > sprite_command_size - 1) {
+		ReleaseMutex(g_sprite_commands_mutex);
+		return Snil;
+	}
+	sprite_commands[c].active = true;
+	sprite_commands[c].bank = n;
+	sprite_commands[c].x = x;
+	sprite_commands[c].y = y;
+	sprite_commands[c].render_type = 1;
+	commands_length++;
+	ReleaseMutex(g_sprite_commands_mutex);
+	return Strue;
+}
+
+
+ptr add_draw_rect(float x, float y, float w, float h) {
 	
 	if (x > prefer_width + ignore_clip) return Snil;
 	if (x < -ignore_clip) return Snil;
@@ -1173,35 +1204,18 @@ ptr add_draw_sprite(int n, float x, float y) {
 	int c = 1;
 	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
 	if (c > sprite_command_size - 1) {
+		ReleaseMutex(g_sprite_commands_mutex);
 		return Snil;
 	}
-	sprite_commands[c].active = true;
-	sprite_commands[c].bank = n;
-	sprite_commands[c].x = x;
-	sprite_commands[c].y = y;
-	sprite_commands[c].render_type = 1;
-	return Strue;
-}
-
-
-ptr add_draw_rect(float x, float y, float w, float h) {
-
-	if (x > prefer_width + ignore_clip) return Snil;
-	if (x < -ignore_clip) return Snil;
-	if (y < -ignore_clip) return Snil;
-	if (y > prefer_height + ignore_clip) return Snil;
-
-	int c = 1;
-	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
-	if (c > sprite_command_size - 1) {
-		return Snil;
-	}
+	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
 	sprite_commands[c].active = true;
 	sprite_commands[c].x = x;
 	sprite_commands[c].y = y;
 	sprite_commands[c].w = w;
 	sprite_commands[c].h = h;
 	sprite_commands[c].render_type = 20;
+	commands_length++;
+	ReleaseMutex(g_sprite_commands_mutex);
 	return Strue;
 }
 
@@ -1215,27 +1229,33 @@ ptr add_fill_rect(float x, float y, float w, float h) {
 	int c = 1;
 	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
 	if (c > sprite_command_size - 1) {
+		ReleaseMutex(g_sprite_commands_mutex);
 		return Snil;
 	}
+	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
 	sprite_commands[c].active = true;
 	sprite_commands[c].x = x;
 	sprite_commands[c].y = y;
 	sprite_commands[c].w = w;
 	sprite_commands[c].h = h;
 	sprite_commands[c].render_type = 21;
+	commands_length++;
+	ReleaseMutex(g_sprite_commands_mutex);
 	return Strue;
 }
 
 ptr add_ellipse (float x, float y, float w, float h) {
-
+	
 	if (x > prefer_width + ignore_clip) return Snil;
 	if (x < -ignore_clip) return Snil;
 	if (y < -ignore_clip) return Snil;
 	if (y > prefer_height + ignore_clip) return Snil;
 
+	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
 	int c = 1;
 	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
 	if (c > sprite_command_size - 1) {
+		ReleaseMutex(g_sprite_commands_mutex);
 		return Snil;
 	}
 	sprite_commands[c].active = true;
@@ -1244,11 +1264,13 @@ ptr add_ellipse (float x, float y, float w, float h) {
 	sprite_commands[c].w = w;
 	sprite_commands[c].h = h;
 	sprite_commands[c].render_type = 22;
+	commands_length++;
+	ReleaseMutex(g_sprite_commands_mutex);
 	return Strue;
 }
 
 ptr add_fill_ellipse(float x, float y, float w, float h) {
-
+	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
 	if (x > prefer_width + ignore_clip) return Snil;
 	if (x < -ignore_clip) return Snil;
 	if (y < -ignore_clip) return Snil;
@@ -1257,6 +1279,7 @@ ptr add_fill_ellipse(float x, float y, float w, float h) {
 	int c = 1;
 	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
 	if (c > sprite_command_size - 1) {
+		ReleaseMutex(g_sprite_commands_mutex);
 		return Snil;
 	}
 	sprite_commands[c].active = true;
@@ -1265,6 +1288,8 @@ ptr add_fill_ellipse(float x, float y, float w, float h) {
 	sprite_commands[c].w = w;
 	sprite_commands[c].h = h;
 	sprite_commands[c].render_type = 23;
+	commands_length++;
+	ReleaseMutex(g_sprite_commands_mutex);
 	return Strue;
 }
 
@@ -1274,10 +1299,11 @@ ptr add_line(float x, float y, float w, float h) {
 	if (x < -ignore_clip) return Snil;
 	if (y < -ignore_clip) return Snil;
 	if (y > prefer_height + ignore_clip) return Snil;
-
+	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
 	int c = 1;
 	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
 	if (c > sprite_command_size - 1) {
+		ReleaseMutex(g_sprite_commands_mutex);
 		return Snil;
 	}
 	sprite_commands[c].active = true;
@@ -1286,14 +1312,17 @@ ptr add_line(float x, float y, float w, float h) {
 	sprite_commands[c].w = w;
 	sprite_commands[c].h = h;
 	sprite_commands[c].render_type = 24;
+	commands_length++;
+	ReleaseMutex(g_sprite_commands_mutex);	
 	return Strue;
 }
 
 ptr add_clear_image(float r, float g, float b, float a) {
-
+	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
 	int c = 1;
 	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
 	if (c > sprite_command_size - 1) {
+		ReleaseMutex(g_sprite_commands_mutex);
 		return Snil;
 	}
 	sprite_commands[c].active = true;
@@ -1301,15 +1330,18 @@ ptr add_clear_image(float r, float g, float b, float a) {
 	sprite_commands[c].g = g;
 	sprite_commands[c].b = b;
 	sprite_commands[c].a = a;
-	sprite_commands[c].render_type = 8;
+	sprite_commands[c].render_type = 8;	
+	commands_length++;
+	ReleaseMutex(g_sprite_commands_mutex);
 	return Strue;
 }
 
 ptr add_line_colour(float r, float g, float b, float a) {
-
+	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
 	int c = 1;
 	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
 	if (c > sprite_command_size - 1) {
+		ReleaseMutex(g_sprite_commands_mutex);
 		return Snil;
 	}
 	sprite_commands[c].active = true;
@@ -1318,14 +1350,17 @@ ptr add_line_colour(float r, float g, float b, float a) {
 	sprite_commands[c].b = b;
 	sprite_commands[c].a = a;
 	sprite_commands[c].render_type = 10;
+	commands_length++;
+	ReleaseMutex(g_sprite_commands_mutex);
 	return Strue;
 }
 
 ptr add_fill_colour(float r, float g, float b, float a) {
-
+	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
 	int c = 1;
 	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
 	if (c > sprite_command_size - 1) {
+		ReleaseMutex(g_sprite_commands_mutex);
 		return Snil;
 	}
 	sprite_commands[c].active = true;
@@ -1334,26 +1369,33 @@ ptr add_fill_colour(float r, float g, float b, float a) {
 	sprite_commands[c].b = b;
 	sprite_commands[c].a = a;
 	sprite_commands[c].render_type = 11;
+	commands_length++;
+	ReleaseMutex(g_sprite_commands_mutex);
 	return Strue;
 }
 
 ptr add_pen_width(float w) {
-
+	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
 	int c = 1;
 	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
 	if (c > sprite_command_size - 1) {
+		ReleaseMutex(g_sprite_commands_mutex);
 		return Snil;
 	}
 	sprite_commands[c].active = true;
 	sprite_commands[c].w = w;
 	sprite_commands[c].render_type = 12;
+	commands_length++;
+	ReleaseMutex(g_sprite_commands_mutex);
 	return Strue;
 }
 
 ptr add_write_text(float x, float y, char*s) {
+	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
 	int c = 1;
 	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
 	if (c > sprite_command_size - 1) {
+		ReleaseMutex(g_sprite_commands_mutex);
 		return Snil;
 	}
 	sprite_commands[c].active = true;
@@ -1367,20 +1409,23 @@ ptr add_write_text(float x, float y, char*s) {
 
 	sprite_commands[c].text = Utility::widen(s);
 	sprite_commands[c].render_type = 9;
+	commands_length++;
+	ReleaseMutex(g_sprite_commands_mutex);
 	return Strue;
 }
 
 
 ptr add_scaled_rotated_sprite(int n, float x, float y, float a, float s) {
-	
+
 	if (x > prefer_width + ignore_clip) return Snil;
 	if (x < -ignore_clip) return Snil;
 	if (y < -ignore_clip) return Snil;
 	if (y > prefer_height + ignore_clip) return Snil;
-	
+	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
 	int c = 1;
 	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
 	if (c > sprite_command_size - 1) {
+		ReleaseMutex(g_sprite_commands_mutex);
 		return Snil;
 	}
 	sprite_commands[c].active = true;
@@ -1390,6 +1435,8 @@ ptr add_scaled_rotated_sprite(int n, float x, float y, float a, float s) {
 	sprite_commands[c].angle = a;
 	sprite_commands[c].s = s;
 	sprite_commands[c].render_type = 2;
+	commands_length++;
+	ReleaseMutex(g_sprite_commands_mutex);
 	return Strue;
 }
 
@@ -1402,10 +1449,11 @@ ptr add_render_sprite_sheet(int n,
 	if (dx < -ignore_clip) return Snil;
 	if (dy < -ignore_clip) return Snil;
 	if (dy > prefer_height + ignore_clip) return Snil;
-
+	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
 	int c = 1;
 	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
 	if (c > sprite_command_size - 1) {
+		ReleaseMutex(g_sprite_commands_mutex);
 		return Snil;
 	}
 	sprite_commands[c].active = true;
@@ -1420,26 +1468,33 @@ ptr add_render_sprite_sheet(int n,
 	sprite_commands[c].sh = sh; 
 	sprite_commands[c].s = scale;
 	sprite_commands[c].render_type = 3;
+	commands_length++;
+	ReleaseMutex(g_sprite_commands_mutex);
 	return Strue;
 }
 
 
 ptr clear_all_draw_sprite() {
+	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
 	for (int i = 0; i < sprite_command_size - 1; i++) {
 		sprite_commands[i].active = false;
 		sprite_commands[i].bank = bank_size + 1;
 		sprite_commands[i].render_type = 0;
 	}
+	ReleaseMutex(g_sprite_commands_mutex);
 	return Snil;
 }
 
 ptr clear_draw_sprite(int c) {
+	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
 	if (c > sprite_command_size - 1) {
+		ReleaseMutex(g_sprite_commands_mutex);
 		return Snil;
 	}
 	sprite_commands[c].active = false;
 	sprite_commands[c].bank = bank_size+1;
 	sprite_commands[c].render_type = 0;
+	ReleaseMutex(g_sprite_commands_mutex);
 }
 
 void do_write_text(float x, float y, std::wstring s) {
@@ -1463,18 +1518,21 @@ void do_render_sprite_sheet(int n, float dx, float dy, float dw, float dh,
 }
 
 void render_sprite_commands() {
-
+	 
 	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
 		return;
 	}
+	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
 	ActiveRenderTarget->BeginDraw();
-	for (int i = 1; i < sprite_command_size - 1; i++) {
+
+	for (int i = 1; i < commands_length+1; i++) {
+
 		if (sprite_commands[i].active == true) {
 			switch (sprite_commands[i].render_type) {
 			case 1:
 				do_draw_sprite(
 					sprite_commands[i].bank,
-					sprite_commands[i].x, 
+					sprite_commands[i].x,
 					sprite_commands[i].y);
 				break;
 			case 2:
@@ -1483,7 +1541,7 @@ void render_sprite_commands() {
 					sprite_commands[i].x,
 					sprite_commands[i].y,
 					sprite_commands[i].angle,
-					sprite_commands[i].s); 
+					sprite_commands[i].s);
 				break;
 			case 3:
 				do_render_sprite_sheet(
@@ -1526,7 +1584,7 @@ void render_sprite_commands() {
 					sprite_commands[i].a);
 				break;
 			case 12:
-				d2d_stroke_width = sprite_commands[i].w; 
+				d2d_stroke_width = sprite_commands[i].w;
 				break;
 			case 20:
 				d2d_zrectangle(
@@ -1565,6 +1623,11 @@ void render_sprite_commands() {
 				break;
 			}
 		}
+		
+		if ((i % complexity_limit) == 0) {
+			ActiveRenderTarget->EndDraw();
+			ActiveRenderTarget->BeginDraw();
+		}
 	}
 	ActiveRenderTarget->EndDraw();
 	// clear for next step
@@ -1574,11 +1637,9 @@ void render_sprite_commands() {
 		sprite_commands[i].render_type = 0;
 		sprite_commands[i].text.clear();
 	}
+	commands_length = 0;
+	ReleaseMutex(g_sprite_commands_mutex);
 }
-
-
-
-
 
 
 ptr d2d_image_size(int w, int h)
@@ -1728,8 +1789,12 @@ void CD2DView::Stop()
 	ReleaseMutex(g_image_rotation_mutex);
 }
 
+
+
+void scan_keys();
 void CD2DView::Step(ptr n)
 {
+	scan_keys();
 	step(n);
 }
 
@@ -1826,7 +1891,28 @@ ptr cons_sfixnum(const char* symbol, const int value, ptr l)
     return l;
 }
 
+int debounce_delay = 80;
+int debounce = 0;
+
+void scan_keys() {
+
+	if (GetTickCount() - debounce > debounce_delay) {
+		if (GetAsyncKeyState(VK_LEFT) != 0)
+			graphics_keypressed.left = true;
+		if (GetAsyncKeyState(VK_RIGHT) != 0)
+			graphics_keypressed.right = true;
+		if (GetAsyncKeyState(VK_UP) != 0)
+			graphics_keypressed.up = true;
+		if (GetAsyncKeyState(VK_DOWN) != 0)
+			graphics_keypressed.up = true;
+		if (GetAsyncKeyState(VK_SPACE) != 0)
+			graphics_keypressed.space = true;
+		debounce = GetTickCount();
+	}
+}
+
 ptr graphics_keys(void) {
+
 	ptr a = Snil;
 	a = cons_sbool("left", graphics_keypressed.left, a);
 	a = cons_sbool("right", graphics_keypressed.right, a);
@@ -1836,7 +1922,22 @@ ptr graphics_keys(void) {
 	a = cons_sbool("space", graphics_keypressed.space, a);
 	a = cons_sfixnum("key", graphics_keypressed.key_code, a);
 	a = cons_sfixnum("recent", GetTickCount() - graphics_keypressed.when, a);
+
+	graphics_keypressed.ctrl = false;
+	graphics_keypressed.left = false;
+	graphics_keypressed.right = false;
+	graphics_keypressed.down = false;
+	graphics_keypressed.up = false;
+	graphics_keypressed.space = false;
+	graphics_keypressed.key_code = 0;
+	graphics_keypressed.when = GetTickCount();
+
 	return a;
+}
+
+ptr keyboard_debounce(int n) {
+	debounce_delay = n;
+	return Snil;
 }
 
 LRESULT CD2DView::WndProc(UINT msg, WPARAM wparam, LPARAM lparam)
@@ -1845,36 +1946,8 @@ LRESULT CD2DView::WndProc(UINT msg, WPARAM wparam, LPARAM lparam)
     switch (msg)
     {
     case WM_KEYDOWN:
-        graphics_keypressed.ctrl = false;
-        graphics_keypressed.left = false;
-        graphics_keypressed.right = false;
-        graphics_keypressed.down = false;
-        graphics_keypressed.up = false;
-        graphics_keypressed.space = false;
         graphics_keypressed.key_code = wparam;
         graphics_keypressed.when = GetTickCount();
-        switch (wparam) {
-
-        case VK_CONTROL:
-            graphics_keypressed.ctrl = true;
-            break;
-        case VK_LEFT:
-            graphics_keypressed.left = true;
-            break;
-        case VK_RIGHT:
-            graphics_keypressed.right = true;
-            break;
-        case VK_UP:
-            graphics_keypressed.up = true;
-            break;
-        case VK_DOWN:
-            graphics_keypressed.down = true;
-            break;
-        case VK_SPACE:
-            graphics_keypressed.space = true;
-            break;
-
-        }
         break;
 
     case WM_DISPLAYCHANGE: 
@@ -1951,9 +2024,21 @@ void add_d2d_commands() {
 	Sforeign_symbol("d2d_zmatrix_rotrans", static_cast<ptr>(d2d_zmatrix_identity));
 	Sforeign_symbol("d2d_zmatrix_identity", static_cast<ptr>(d2d_zmatrix_rotrans));
 	Sforeign_symbol("graphics_keys", static_cast<ptr>(graphics_keys));
+	Sforeign_symbol("keyboard_debounce", static_cast<ptr>(keyboard_debounce));
 }
 
 void CD2DView::AddCommands()
 {
+	if (g_image_rotation_mutex == nullptr) {
+		g_image_rotation_mutex = CreateMutex(nullptr, FALSE, nullptr);
+	}
+	if (g_sprite_commands_mutex == nullptr) {
+		g_sprite_commands_mutex = CreateMutex(nullptr, FALSE, nullptr);
+	}
 	add_d2d_commands();
+}
+
+void CD2DView::ScanKeys()
+{
+	scan_keys();
 }

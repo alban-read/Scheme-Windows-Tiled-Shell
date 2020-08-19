@@ -113,6 +113,21 @@
     (set! enemies
       (filter (lambda (a) (> 1200.0 (caar a))) enemies ))))
 
+(define hits '())
+
+(define collisions
+	(lambda ()
+		(set! hits 
+		(map 
+		  (lambda (m)
+			(filter (lambda (e) 
+				(and 
+				(> (+  (car m) 60.0)  (caar e))
+				(< (-  (car m) 60.0)  (caar e))
+				(< (- (cadr m) 60.0) (cadar e)) 	
+				(> (+ (cadr m) 60.0) (cadar e)) 		
+				)) enemies)) missiles))))
+
 (define draw-hero 
   (lambda (x) 
     (add-scaled-rotated-sprite 1 x 510.0 0.0 0.65)))
@@ -126,24 +141,24 @@
   (when (< h-x 1.0) (set! h-x 1.0))
   (when (> h-x 713.0) (set! h-x 713.0))
   (when (> h-xn 0.0) (set! h-xn (- h-xn 0.2)))
-  (when (< h-xn 0.0) (set! h-xn (+ h-xn 0.2)))))
+  (when (< h-xn 0.0) (set! h-xn (+ h-xn 0.2))
+  (when (< (abs h-xn) 0.4) (set! h-xn 0.0)))))
  
 (define draw-scene 
- (lambda ( hx )
-   (clear-scene)
-   (draw-invaders)
-   (draw-missiles)
-   (draw-hero hx)))
+	(lambda ( hx )
+	   (clear-scene)
+	   (draw-invaders)
+	   (draw-missiles)
+	   (draw-hero hx)))
 
 (define check-keys
   
  (lambda (keys)
 
-    (when (and 
-			(< (cdr (assq 'recent keys)) 50)
-			(cdr (assq 'space keys)) 
-			(<  (length missiles) 8))
-              (fire-missiles))
+    (when (and (< (cdr (assq 'recent keys)) 50)
+			   (cdr (assq 'space keys)) 
+			   (<  (length missiles) 8))
+                  (fire-missiles))
 
     (when (and (< (cdr (assq 'recent keys)) 50)
                (cdr (assq 'left keys)))
@@ -157,18 +172,26 @@
 (enemy-wave-one)
 
 (define game-step 
-  (lambda ()
-   (set! frames (+ frames 1))
-   (check-keys (graphics-keys))
-   (check-hx)
-   (move-enemies)
-   (move-missiles)
-   (move-hero)
-   (clean-missiles)
-   (clean-enemies)
-   (draw-scene h-x)))
+    (lambda ()
+	   (set! frames (+ frames 1))
+	   (check-keys (graphics-keys))
+	   (check-hx)
+	   (move-enemies)
+	   (move-missiles)
+	   (move-hero)
+	   (clean-missiles)
+	   (clean-enemies)
+	   (draw-scene h-x)))
+
+(keyboard-delay 100)
 
 (set-every-function 1000 16 2 
 		(lambda ()
 		  (game-step)(gc)))
-  
+ 
+
+	
+ 
+
+ 
+

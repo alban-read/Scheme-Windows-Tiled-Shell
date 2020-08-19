@@ -35,6 +35,7 @@ public:
     static void Step(ptr n);
     static void Swap(int n);
     static void AddCommands();
+    static void ScanKeys();
     
 
 protected:

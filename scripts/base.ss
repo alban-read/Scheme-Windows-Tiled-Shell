@@ -636,6 +636,11 @@
    ((foreign-procedure "graphics_keys"
     () ptr))))
 	
+(define keyboard-delay
+  (lambda (n)
+   ((foreign-procedure "keyboard_debounce"
+    (int) ptr) n)))	
+	
 ;; sound from the xbox audio api here on windows.	
 (define load-sound
  (lambda (s n)

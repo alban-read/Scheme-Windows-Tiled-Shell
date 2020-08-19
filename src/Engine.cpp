@@ -373,6 +373,7 @@ VOID CALLBACK run_every(PVOID lpParam, BOOLEAN TimerOrWaitFired) {
 	}
 	
 	
+	CD2DView::ScanKeys();
 	WaitForSingleObject(g_script_mutex, INFINITE);
 	try {
 
