@@ -54,6 +54,13 @@ const auto bank_size = 2048;
 // images bank
 ID2D1Bitmap* pSpriteSheet[bank_size];
 
+struct sprite_att {
+	int width;
+	int height;
+};
+
+sprite_att sprite_attributes[bank_size];
+
 
 ID2D1Factory* pD2DFactory;
 
@@ -155,10 +162,23 @@ void d2d_CreateOffscreenBitmap()
 }
 
 
+
+ptr sprite_size(int n) {
+	if (n > bank_size - 1) {
+		return Sfalse;
+	}
+	ptr l = Snil;
+	l = CALL2("cons", Sflonum(float(sprite_attributes[n].height)), l);
+	l = CALL2("cons", Sflonum(float(sprite_attributes[n].width)), l);
+	return l;
+}
+
 ptr d2d_FreeAllSprites() {
 
 	for (int n = 0; n < bank_size - 1; n++) {
 		SafeRelease(&pSpriteSheet[n]);
+		sprite_attributes[n].width = 0;
+		sprite_attributes[n].height = 0;
 	}
 	return Strue;
 }
@@ -168,6 +188,8 @@ ptr d2d_FreeSpriteInBank(int n) {
 		return Sfalse;
 	}
 	SafeRelease(&pSpriteSheet[n]);
+	sprite_attributes[n].width = 0;
+	sprite_attributes[n].height = 0;
 	return Strue;
 }
 
@@ -197,11 +219,22 @@ ptr d2d_MakeSpriteInBank(int n, int w, int h, ptr f)
 	CheckLineBrush();
 	ActiveRenderTarget->BeginDraw();
 	ptr result = Engine::RunNaked(f);
-	ActiveRenderTarget->EndDraw();
+	HRESULT hr=ActiveRenderTarget->EndDraw();
 	ActiveRenderTarget = oldRenderTarget;
 	BitmapRender2Bank->Release();
 	SafeRelease(&pColourBrush);
 	SafeRelease(&pfillColourBrush);
+	if (SUCCEEDED(hr)) {
+		auto size = pSpriteSheet[n]->GetPixelSize();
+		sprite_attributes[n].width = size.width;
+		sprite_attributes[n].height = size.height;
+	}
+	else {
+		pSpriteSheet[n] = nullptr;
+		sprite_attributes[n].width = 0;
+		sprite_attributes[n].height = 0;
+		return Sfalse;
+	}
 	return Strue;
 }
 
@@ -791,6 +824,16 @@ void d2d_sprite_loader(char* filename, int n)
 			NULL,
 			&pSpriteSheet[n]
 		);
+		if (SUCCEEDED(hr)) {
+			auto size = pSpriteSheet[n]->GetPixelSize();
+			sprite_attributes[n].width = size.width;
+			sprite_attributes[n].height = size.height;
+		}
+		else {
+			pSpriteSheet[n] = nullptr;
+			sprite_attributes[n].width = 0;
+			sprite_attributes[n].height = 0;
+		}
 	}
 	SafeRelease(&wicFactory);
 	SafeRelease(&wicDecoder);
@@ -1495,6 +1538,7 @@ ptr clear_draw_sprite(int c) {
 	sprite_commands[c].bank = bank_size+1;
 	sprite_commands[c].render_type = 0;
 	ReleaseMutex(g_sprite_commands_mutex);
+	return Strue;
 }
 
 void do_write_text(float x, float y, std::wstring s) {
@@ -1895,7 +1939,7 @@ int debounce_delay = 80;
 int debounce = 0;
 
 void scan_keys() {
-
+	if (debounce_delay == 0) return;
 	if (GetTickCount() - debounce > debounce_delay) {
 		if (GetAsyncKeyState(VK_LEFT) != 0)
 			graphics_keypressed.left = true;
@@ -1907,6 +1951,8 @@ void scan_keys() {
 			graphics_keypressed.up = true;
 		if (GetAsyncKeyState(VK_SPACE) != 0)
 			graphics_keypressed.space = true;
+		if (GetAsyncKeyState(VK_CONTROL) != 0)
+			graphics_keypressed.ctrl = true;
 		debounce = GetTickCount();
 	}
 }
@@ -1969,6 +2015,7 @@ void add_d2d_commands() {
 	Sforeign_symbol("d2d_render_sprite_rotscale", static_cast<ptr>(d2d_render_sprite_rotscale));
 	Sforeign_symbol("d2d_render_sprite_sheet", static_cast<ptr>(d2d_render_sprite_sheet));
 	Sforeign_symbol("d2d_render_sprite_sheet_rot_scale", static_cast<ptr>(d2d_render_sprite_sheet_rot_scale));
+	Sforeign_symbol("sprite_size", static_cast<ptr>(sprite_size));
 	Sforeign_symbol("d2d_load_sprites", static_cast<ptr>(d2d_load_sprites));
 	Sforeign_symbol("d2d_FreeAllSprites", static_cast<ptr>(d2d_FreeAllSprites));
 	Sforeign_symbol("d2d_FreeSpriteInBank", static_cast<ptr>(d2d_FreeSpriteInBank));

@@ -90,7 +90,8 @@ static const char g_scheme[] =
 
 // commands that have been added by this app.
 static const char g_scheme2[] =
-"add-draw-sprite add-scaled-rotated-sprite "
+"add-clear-image add-draw-rect add-draw-ellipse add-draw-sprite  add-fill-colour add-fill-ellipse "
+"add-fill-rect add-draw-line add-line-colour add-pen-width add-render-sprite add-scaled-rotated-sprite add-write-text "
 "after " 
 "batch-draw-ellipse batch-draw-line batch-draw-rect batch-draw-scaled-rotated-sprite "
 "batch-draw-sprite batch-fill-ellipse batch-fill-rect batch-render-sprite batch-render-sprite-scale-rot "

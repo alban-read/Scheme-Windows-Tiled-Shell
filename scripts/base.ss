@@ -518,6 +518,12 @@
    ((foreign-procedure "d2d_FreeSpriteInBank"
     (int) ptr) n)))
 	
+ (define sprite-size
+ (lambda (n)
+   ((foreign-procedure "sprite_size"
+    (int) ptr) n)))
+		
+	
 (define make-sprite
  (lambda (n w h f)
    ((foreign-procedure "d2d_MakeSpriteInBank"

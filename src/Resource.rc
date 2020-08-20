@@ -45,11 +45,11 @@ BEGIN
         MENUITEM "&Tool Bar",                   IDW_VIEW_TOOLBAR, CHECKED
         MENUITEM "&Status Bar",                 IDW_VIEW_STATUSBAR, CHECKED
     END
-    POPUP "&Docking"
+    POPUP "&Arrange Tiles"
     BEGIN
-        MENUITEM "See Documentation",           ID_DOCKING_BROWSERLAYOUT
+        MENUITEM "Documentation",               ID_DOCKING_BROWSERLAYOUT
         MENUITEM "&Default Layout",             IDM_DOCK_DEFAULT
-        MENUITEM "Image Layout",                ID_DOCKING_IMAGELAYOUT
+        MENUITEM "&Image Layout",               ID_DOCKING_IMAGELAYOUT
         MENUITEM "&Close All",                  IDM_DOCK_CLOSEALL
     END
     POPUP "&Options"
@@ -127,7 +127,7 @@ CAPTION "About"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,68,49,50,14
-    CTEXT           "Scheme Workspace by Alban 2020",IDC_STATIC,41,20,102,18
+    CTEXT           "Open Source Scheme Workspace by Alban 2020",IDC_STATIC,41,20,102,18
     ICON            IDW_MAIN,0,4,4,20,20
 END
 
@@ -206,7 +206,7 @@ END
 
 STRINGTABLE
 BEGIN
-    IDW_MAIN                "Tiled Scheme Shell (Direct 2D; WebView2; 2020)"
+    IDW_MAIN                "Scheme Shell"
     IDW_VIEW_TOOLBAR        "Show or hide the tool bar"
     IDW_VIEW_STATUSBAR      "Show or hide the status bar"
     IDW_READY               "Ready"
@@ -287,6 +287,26 @@ BEGIN
 END
 
 #endif    // English (United States) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United Kingdom) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENG)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_LAMBDA              ICON                    "../src/res/icon1.ico"
+
+#endif    // English (United Kingdom) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

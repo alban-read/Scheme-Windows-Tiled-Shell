@@ -9,6 +9,7 @@ public:
 	static void Start();
 	static void Stop();
 	static ptr Run(ptr f);
+	static ptr RunNaked(ptr f);
 
 };
 

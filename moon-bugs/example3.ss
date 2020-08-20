@@ -1,7 +1,12 @@
 ;; example 3 - enemy list - render mode 2
+
 (define frames 0)
 (define h-x 400.0)
 (define h-xn 0.0 )
+(define enemies '())
+(define missiles '())
+(define hits '())
+
 
 (define load-all-sprites 
  (lambda ()
@@ -22,8 +27,6 @@
   (lambda (x y xn yn s)
    (list (list (list x y) (list xn yn) s))))
    
-(define enemies '())
-
 (define enemy-wave-one
  (lambda ()
 
@@ -54,8 +57,6 @@
 		(append enemies 
 			(new-enemy 730.0 y 0.0 0.8 20)))  )))
    
-(define missiles '())
-
 (define new-missile
   (lambda (x y)
    (list (list x y))))
@@ -113,20 +114,35 @@
     (set! enemies
       (filter (lambda (a) (> 1200.0 (caar a))) enemies ))))
 
-(define hits '())
-
 (define collisions
-	(lambda ()
-		(set! hits 
-		(map 
-		  (lambda (m)
-			(filter (lambda (e) 
-				(and 
-				(> (+  (car m) 60.0)  (caar e))
-				(< (-  (car m) 60.0)  (caar e))
-				(< (- (cadr m) 60.0) (cadar e)) 	
-				(> (+ (cadr m) 60.0) (cadar e)) 		
-				)) enemies)) missiles))))
+  (lambda ()
+    (when (and (> (length missiles) 0) (> (length enemies)))
+      (set! hits
+        (filter
+          (lambda (h) (not (null? h)))
+          (map (lambda (m)
+                 (filter
+                   (lambda (e)
+                     (and (> (+ (car m) 40.0) (caar e))
+                          (< (- (car m) 40.0) (caar e))
+                          (< (- (cadr m) 40.0) (cadar e))
+                          (> (+ (cadr m) 40.0) (cadar e))))
+                   enemies))
+               missiles))))))
+
+ (define draw-hits
+  (lambda ()
+    (when (> (length hits) 0)
+      (add-line-colour 1.0 0.0 1.0 0.4)
+	  (add-pen-width 2.5)
+      (map (lambda (e)
+             (when (and (not (null? e))
+                        (not (null? (caaar e)))
+                        (not (null? (cadaar e))))
+               (add-draw-ellipse
+                   (+ 20 (caaar e)) (+ 20(cadaar e)) 40.0 40.0)))
+           hits))))
+
 
 (define draw-hero 
   (lambda (x) 
@@ -149,14 +165,15 @@
 	   (clear-scene)
 	   (draw-invaders)
 	   (draw-missiles)
-	   (draw-hero hx)))
+	   (draw-hero hx)
+       (draw-hits)))
 
 (define check-keys
   
  (lambda (keys)
 
     (when (and (< (cdr (assq 'recent keys)) 50)
-			   (cdr (assq 'space keys)) 
+			   (cdr (assq 'ctrl keys)) 
 			   (<  (length missiles) 8))
                   (fire-missiles))
 
@@ -176,9 +193,10 @@
 	   (set! frames (+ frames 1))
 	   (check-keys (graphics-keys))
 	   (check-hx)
-	   (move-enemies)
+	   (move-enemies) 
 	   (move-missiles)
-	   (move-hero)
+	   (move-hero)     
+       (collisions)
 	   (clean-missiles)
 	   (clean-enemies)
 	   (draw-scene h-x)))
@@ -187,11 +205,9 @@
 
 (set-every-function 1000 16 2 
 		(lambda ()
-		  (game-step)(gc)))
- 
-
-	
- 
+		  (game-step) (gc)))
 
  
-
+ 
+ 
+ 
