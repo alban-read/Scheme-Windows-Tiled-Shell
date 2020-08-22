@@ -27,8 +27,17 @@
 
 using namespace Microsoft::WRL;
 
+#define CALL0(who) Scall0(Stop_level_value(Sstring_to_symbol(who)))
+#define CALL1(who, arg) Scall1(Stop_level_value(Sstring_to_symbol(who)), arg)
+#define CALL2(who, arg, arg2) Scall2(Stop_level_value(Sstring_to_symbol(who)), arg, arg2)
+
+
 ComPtr<ICoreWebView2> web_view_window;
 ComPtr<ICoreWebView2Controller>web_view_controller;
+
+HANDLE g_messages_mutex;
+
+bool allow_eval = true;
 
 
 size_t get_size_of_file(const std::wstring& path)
@@ -76,10 +85,6 @@ ptr scheme_load_document_from_file(const char* relative_file_name)
 }
  
 
-void add_webview_commands() {
-
-}
-
 
 WebViewer::WebViewer()
 {
@@ -87,6 +92,14 @@ WebViewer::WebViewer()
 
 WebViewer::~WebViewer()
 {
+}
+
+bool startsWith(std::string mainStr, std::string toMatch)
+{
+    if (mainStr.find(toMatch) == 0)
+        return true;
+    else
+        return false;
 }
 
 void WebViewer::OnInitialUpdate()
@@ -112,6 +125,17 @@ void WebViewer::OnInitialUpdate()
                     
                         EventRegistrationToken token;
 
+                        web_view_window->add_NavigationStarting(Callback<ICoreWebView2NavigationStartingEventHandler>(
+                            [](ICoreWebView2* webview, ICoreWebView2NavigationStartingEventArgs* args) -> HRESULT {
+                                PWSTR uri;
+                                args->get_Uri(&uri);
+                                const std::wstring source(uri);
+                              
+                                CoTaskMemFree(uri);
+                                return S_OK;
+                            }).Get(), &token);
+
+
                         web_view_window->add_ProcessFailed(Callback<ICoreWebView2ProcessFailedEventHandler>(
                             [](ICoreWebView2* webview, ICoreWebView2ProcessFailedEventArgs* args) -> HRESULT {
                                 COREWEBVIEW2_PROCESS_FAILED_KIND kind;
@@ -130,6 +154,7 @@ void WebViewer::OnInitialUpdate()
                                 return S_OK;
                             }).Get(), &token);
 
+
                         const auto locate_script = Utility::GetFullPathFor(Utility::widen("scripts/startup.js").c_str());
                         if (!(INVALID_FILE_ATTRIBUTES == GetFileAttributes(locate_script.c_str()) &&
                             GetLastError() == ERROR_FILE_NOT_FOUND))
@@ -138,25 +163,89 @@ void WebViewer::OnInitialUpdate()
                             web_view_window->AddScriptToExecuteOnDocumentCreated(startup_script.c_str(), nullptr);
                         }
 
+                        const auto locate_base= Utility::GetFullPathFor(Utility::widen("scripts/base.js").c_str());
+                        if (!(INVALID_FILE_ATTRIBUTES == GetFileAttributes(locate_base.c_str()) &&
+                            GetLastError() == ERROR_FILE_NOT_FOUND))
+                        {
+                            const auto startup_script = load_utf8_file_to_string(locate_base);
+                            web_view_window->AddScriptToExecuteOnDocumentCreated(locate_base.c_str(), nullptr);
+                        }
+
+
                         // listen for messages to evaluate scheme from the web view
                         web_view_window->add_WebMessageReceived(Callback<ICoreWebView2WebMessageReceivedEventHandler>(
                             [](ICoreWebView2* webview, ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT {
 
-
+                                PWSTR source;
                                 PWSTR message;
                                 args->TryGetWebMessageAsString(&message);
+                                args->get_Source(&source);
+
                                 std::string text = Utility::ws_2s(message);
+                                std::string uri = Utility::ws_2s(source);
+
+                                //CViewText::transcriptln((char*)fmt::format("Message from {}", uri).c_str());
                                 
-                                const char* eval_cmd = "::eval:";
-                                if (text.rfind(eval_cmd, 0) == 0) {
-                                    std::string command = text.c_str() + strlen(eval_cmd);
-                                    Engine::Eval(_strdup(command.c_str()));
-                                    CViewText::transcriptln((char*)command.c_str());
-                                    Sleep(0);
-                                    CoTaskMemFree(message);
-                                    return S_OK;
+                                bool safe_ish = false;
+                                if (startsWith(uri, "https://github.com/alban-read/")) safe_ish = true;
+                                if (startsWith(uri, "https://www.scheme.com/")) safe_ish = true;
+                                if (startsWith(uri, "http://cisco.github.io/ChezScheme/csug9.5/")) safe_ish = true;
+                                if (startsWith(uri, "file:")) safe_ish = true;
+
+                                if (uri.find("Scheme-Windows-Tiled-Shell\docs") != std::string::npos) {
+                                    safe_ish = true;
                                 }
-                                // add more commands ..
+                                const char* eval_cmd = "::eval:";
+                                if (allow_eval == true && safe_ish==true) {
+                            
+                                    if (text.rfind(eval_cmd, 0) == 0) {
+                                        std::string command = text.c_str() + strlen(eval_cmd);
+                                        Engine::Eval(_strdup(command.c_str()));
+                                        //CViewText::transcriptln((char*)command.c_str());
+                                        Sleep(0);
+                                        CoTaskMemFree(message);
+                                        return S_OK;
+                                    }
+
+                                }
+
+                                const char* api_cmd = "::api:";
+                                if (text.rfind(api_cmd, 0) == 0) {
+                                    char* end_ptr;
+                                    int n = static_cast<int>(strtol(text.c_str() + strlen(api_cmd), &end_ptr, 10));
+
+                                    if (n < 63) {
+
+                       
+                                        std::string param = end_ptr;
+                                        const ptr scheme_string = Engine::CALL2byName("api-call", Sfixnum(n), Sstring(param.c_str()));
+
+                                        std::string result;
+                                        if (scheme_string != Snil && Sstringp(scheme_string))
+                                        {
+                                            result = Utility::Ss2s(scheme_string);
+                                        }
+                                        std::wstring response;
+                                        if (result.rfind("::", 0) == std::string::npos)
+                                            response = Utility::s2_ws(fmt::format("::api_reply:{0}:", n));
+                                        response += Utility::s2_ws(result);
+                                        webview->PostWebMessageAsString(response.c_str());
+
+                                        return S_OK;
+
+                                    }
+
+                                    switch (n)
+                                    {
+                                    case 1064:
+                                        Engine::Stop();
+                                        return S_OK;
+                                        break;
+
+                                    default:
+                                        break;
+                                    }
+                                }
 
                                 std::wstring response = L"::invalid_request:";
                                 response += message;
@@ -165,7 +254,6 @@ void WebViewer::OnInitialUpdate()
                                 return S_OK;
                             }).Get(), &token);
                             
-
                         RECT bounds;
                         ::GetClientRect(hWnd, &bounds);
                         web_view_controller->put_Bounds(bounds);
@@ -230,7 +318,65 @@ LRESULT WebViewer::WndProc(UINT msg, WPARAM wparam, LPARAM lparam)
 
  
 
+std::deque<std::wstring> post_messages;
+
+ptr post_message_to_webview(const char* msg) {
+    WaitForSingleObject(g_messages_mutex, INFINITE);
+    post_messages.emplace_back(Utility::widen(msg));
+    ReleaseMutex(g_messages_mutex);
+    return Strue;
+}
+
+
+DWORD WINAPI process_postmessages(LPVOID x) {
+
+    while (true) {
+
+        if (GetAsyncKeyState(VK_ESCAPE) != 0)
+        {
+            while (!post_messages.empty())
+            {
+                post_messages.pop_front();
+            }
+            post_messages.shrink_to_fit();
+            ReleaseMutex(g_messages_mutex);
+        }
+        
+        WaitForSingleObject(g_messages_mutex, INFINITE);
+        if (post_messages.empty())
+        {
+            ReleaseMutex(g_messages_mutex);
+            Sleep(20);
+        }
+        else {
+            web_view_window->PostWebMessageAsString(post_messages.front().c_str());
+            post_messages.pop_front();
+            Sleep(1);
+            ReleaseMutex(g_messages_mutex);
+        }
+    }
+}
+
+
+
+void add_webview_commands() {
+    Sforeign_symbol("post_message_to_webview", static_cast<ptr>(post_message_to_webview));
+}
+
+
 void WebViewer::Start()
 {
+    if (g_messages_mutex == nullptr) {
+        g_messages_mutex = CreateMutex(nullptr, FALSE, nullptr);
+    }
+ 
+    static auto cmd_thread = CreateThread(
+        nullptr,
+        0,
+        process_postmessages,
+        nullptr,
+        0,
+        nullptr);
+
     add_webview_commands();
 }

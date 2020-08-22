@@ -9,3 +9,11 @@ window.addEventListener('keydown', function (event) {
 	evaluate_selected_expression();
 	}
 });
+
+window.chrome.webview.addEventListener('message', event => handle_events(event.data));
+
+ function handle_events(data) {
+	 console.log(data);
+ }
+ 
+ 

@@ -658,4 +658,46 @@
    ((foreign-procedure "play_sound"
     (int) ptr) n)))
 
+ ;; advanced web view features.
+
+(define OnNavigate 
+	(lambda (s)
+	  #f))
+	  
+(define web-message 
+  (lambda (msg)
+    ((foreign-procedure "post_message_to_webview" (string) ptr) msg )))
+	
+ (define eval->string-post-back 
+ (lambda (x) 
+ (try
+   (web-message (string-append "::eval_reply:" (eval->string x)))
+ (catch (lambda(x)  (web-message "::snafu:"))))))
  
+ 
+(define api-call-undefined
+  (lambda (n s1 )
+    (string-append
+      "!ERR:api call #"
+      (number->string n)
+      " is undefined.")))
+
+(define api-call-echo
+  (lambda (n s1)
+    (string-append (number->string n) ":" s1 )))
+
+
+(define api-calls (make-vector 64))
+(define api-call-limit (vector-length api-calls))
+(vector-fill! api-calls api-call-undefined)
+
+(define api-call-write-transcript
+  (lambda (n s1 ) (transcript0 s1) "Ok"))
+  
+(vector-set! api-calls 1 api-call-write-transcript)
+
+(define api-call
+  (lambda (n s1 )
+    (if (< n api-call-limit)
+        (let ([f (vector-ref api-calls n)])
+          (if (procedure? f) (apply f (list n s1 )))))))

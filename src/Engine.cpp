@@ -330,6 +330,8 @@ ptr run_func(ptr f) {
 	return result;
 }
 
+ 
+
 // no mutex, we are called from running scheme
 ptr run_naked_func(ptr f) {
 	Slock_object(f);
@@ -494,6 +496,20 @@ void Engine::Eval(char* cmd)
 	eval_text(cmd);
 }
 
+
+ptr Engine::CALL2byName(char* f, ptr a1, ptr a2)
+{
+	WaitForSingleObject(g_script_mutex, INFINITE);
+	ptr p = Stop_level_value(Sstring_to_symbol(f));
+	if (!Sprocedurep(p)) {
+		ReleaseMutex(g_script_mutex);
+		return Snil;
+	}
+	ptr result = Scall2(p, a1, a2);
+	ReleaseMutex(g_script_mutex);
+	return result;
+}
+
 void Engine::Start() {
 
 	if (g_script_mutex == nullptr) {
@@ -507,6 +523,12 @@ void Engine::Start() {
 	init_commands();
 
 }
+
+bool Engine::Spin(const int turns)
+{ 
+	return true;
+}
+
 
 void Engine::Stop()
 {

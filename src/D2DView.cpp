@@ -161,8 +161,6 @@ void d2d_CreateOffscreenBitmap()
 	ActiveRenderTarget = BitmapRenderTarget;
 }
 
-
-
 ptr sprite_size(int n) {
 	if (n > bank_size - 1) {
 		return Sfalse;

@@ -7,7 +7,11 @@
 #include <WinCrypt.h>
 #pragma comment(lib, "crypt32.lib")
 
- 
+
+#define CALL0(who) Scall0(Stop_level_value(Sstring_to_symbol(who)))
+#define CALL1(who, arg) Scall1(Stop_level_value(Sstring_to_symbol(who)), arg)
+#define CALL2(who, arg, arg2) Scall2(Stop_level_value(Sstring_to_symbol(who)), arg, arg2)
+
 
 int utf8_string_length(const char* s)
 {
@@ -230,6 +234,27 @@ std::string Utility::trim(std::string s)
 ptr Utility::UTF8toSchemeString(std::string s)
 {
 	return constUTF8toSstring(s.c_str());
+}
+
+
+const char* Sstring_to_charptr(ptr sparam)
+{
+	if (sparam == Snil || !Sstringp(sparam))
+	{
+		return _strdup("");
+	}
+
+	auto bytes = CALL1("string->utf8", sparam);
+	const auto len = Sbytevector_length(bytes);
+	const unsigned char* data = Sbytevector_data(bytes);
+	const std::string text((char*)data, len);
+	bytes = Snil;
+	return _strdup(text.c_str());
+}
+
+const char* Utility::Ss2s(ptr sparam)
+{
+	return  Sstring_to_charptr(sparam);
 }
 
 // Our App Actual
