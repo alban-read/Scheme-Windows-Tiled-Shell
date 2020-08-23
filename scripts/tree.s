@@ -1,3 +1,4 @@
+(image-size 800 600)
 (define draw-tree
  (lambda ()
     (define *scale* 10) 

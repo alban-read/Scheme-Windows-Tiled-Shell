@@ -3,9 +3,12 @@
  
 (define circlecount 1000)
 
+
  ;; make some circle sprites
-(for s from 1 to 1000
- (make-sprite s 80 80 
+(define make-sprites
+ (lambda ()
+  (for s from 1 to 1000
+   (make-sprite s 80 80 
 	(lambda ()
 		(pen-width 2.5)
 		(fill-colour 
@@ -13,7 +16,8 @@
 		(line-colour 
 			1.0 1.0 1.0 0.6)
 		(batch-fill-ellipse 40.0 40.0 38.0 38.0)
-		(batch-draw-ellipse 40.0 40.0 38.0 38.0))))
+		(batch-draw-ellipse 40.0 40.0 38.0 38.0))))))
+		
 
 
 
@@ -92,9 +96,13 @@
 	(map drawcirc circles)
 	(show-status))
  (catch (stop-every)))))
+
+
  
+(image-size 800 600)
+(make-sprites)		
+(font "Calibri" 34.0)
  
- (font "Calibri" 34.0)
 (set-every-function 1000 33 2
 		(lambda ()
 		  (circle-step)(gc)))

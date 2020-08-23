@@ -16,6 +16,7 @@ public:
     virtual LRESULT WndProc(UINT msg, WPARAM wparam, LPARAM lparam);
     static void EvalSelected(HWND hwnd);
     static void Start();
+    static void Stop();
 
 };
 

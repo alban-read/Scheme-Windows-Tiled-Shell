@@ -2,7 +2,7 @@
 ;; example just draws circles in render mode 2
  
 (define circlecount 3000)
-
+(image-size 800 600)
 ;; make a new circle
 (define newcircle
   (lambda ()

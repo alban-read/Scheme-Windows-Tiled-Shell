@@ -49,7 +49,9 @@ BEGIN
     BEGIN
         MENUITEM "Documentation",               ID_DOCKING_BROWSERLAYOUT
         MENUITEM "&Default Layout",             IDM_DOCK_DEFAULT
-        MENUITEM "&Image Layout",               ID_DOCKING_IMAGELAYOUT
+        MENUITEM "Docs and &Image Layout",      ID_DOCKING_IMAGELAYOUT
+        MENUITEM "&Evaluator and Image Layout", ID_DOCKING_IMAGE_EVALUATOR
+        MENUITEM "Evaluator and Transcript Layout", ID_DOCKING_EVALUATOR
         MENUITEM "&Close All",                  IDM_DOCK_CLOSEALL
     END
     POPUP "&Options"

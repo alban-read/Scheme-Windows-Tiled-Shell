@@ -215,8 +215,6 @@ void WebViewer::OnInitialUpdate()
                                     int n = static_cast<int>(strtol(text.c_str() + strlen(api_cmd), &end_ptr, 10));
 
                                     if (n < 63) {
-
-                       
                                         std::string param = end_ptr;
                                         const ptr scheme_string = Engine::CALL2byName("api-call", Sfixnum(n), Sstring(param.c_str()));
 
@@ -266,7 +264,6 @@ void WebViewer::OnInitialUpdate()
 
 }
 
- 
 
 LRESULT WebViewer::OnSize(UINT, WPARAM, LPARAM lparam)
 {
@@ -293,7 +290,6 @@ CDockWebViewer::CDockWebViewer()
     CDocker::SetView(m_View);
 }
 
-
 BOOL WebViewer::OnCommand(WPARAM wparam, LPARAM lparam) {
  
     UINT id = LOWORD(wparam);
@@ -316,8 +312,6 @@ LRESULT WebViewer::WndProc(UINT msg, WPARAM wparam, LPARAM lparam)
     return WndProcDefault(msg, wparam, lparam);
 }
 
- 
-
 std::deque<std::wstring> post_messages;
 
 ptr post_message_to_webview(const char* msg) {
@@ -326,7 +320,6 @@ ptr post_message_to_webview(const char* msg) {
     ReleaseMutex(g_messages_mutex);
     return Strue;
 }
-
 
 DWORD WINAPI process_postmessages(LPVOID x) {
 
@@ -358,11 +351,9 @@ DWORD WINAPI process_postmessages(LPVOID x) {
 }
 
 
-
 void add_webview_commands() {
     Sforeign_symbol("post_message_to_webview", static_cast<ptr>(post_message_to_webview));
 }
-
 
 void WebViewer::Start()
 {
@@ -379,4 +370,10 @@ void WebViewer::Start()
         nullptr);
 
     add_webview_commands();
+}
+
+void WebViewer::Stop()
+{
+
+
 }

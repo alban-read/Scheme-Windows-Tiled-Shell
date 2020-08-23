@@ -38,6 +38,7 @@
                (cdr (assq 'right keys)))
       (set! h-x (+ h-x 1.0)))))
 
+(image-size 800 600)
 (load-all-sprites)
 
 (define game-step 

@@ -31,7 +31,6 @@ HANDLE h_every_timer = nullptr;
 HANDLE after_timer_queue = nullptr;
 ptr every_function;
 
-
 std::wstring ws_status;
 
 void setStatusBarText(int n, const char* s) {
@@ -58,10 +57,6 @@ extern "C" __declspec(dllexport) ptr EscapeKeyPressed()
 	return Sfalse;
 }
 
-
- 
-
- 
 
 void load_script_ifexists(const char* script_relative)
 {
@@ -92,7 +87,6 @@ static void custom_init()
 {
 }
 
-
 void abnormal_exit()
 {
 	MessageBox(nullptr,
@@ -101,7 +95,6 @@ void abnormal_exit()
 		MB_OK | MB_ICONERROR);
 	exit(1);
 }
-
 
 // we are running ahead of the GUI opening
 DWORD WINAPI execstartup(LPVOID cmd)
@@ -165,7 +158,6 @@ void post_gui_load_script()
 }
 
 
-
 std::deque<std::string> commands;
 // script execution; 
 bool cancelling = false;
@@ -199,10 +191,7 @@ DWORD WINAPI  process_commands(LPVOID x)
 	int ticks = 0;
 	int pending_commands = 0;
 
-
-
 	while (true) {
-
 
 		if (GetAsyncKeyState(VK_ESCAPE) != 0)
 		{
@@ -224,7 +213,6 @@ DWORD WINAPI  process_commands(LPVOID x)
 			Sleep(1000);
 		}
  
-
 		WaitForSingleObject(g_script_mutex, INFINITE);
 		if (commands.empty()) {
 			setStatusBarText(0, "Ready.");
@@ -276,8 +264,6 @@ DWORD WINAPI  process_commands(LPVOID x)
 
 
 void init_commands() {
-
-
 
 	// script exec background thread
 	static auto cmd_thread = CreateThread(
@@ -391,8 +377,6 @@ VOID CALLBACK run_every(PVOID lpParam, BOOLEAN TimerOrWaitFired) {
 	CD2DView::Swap(swap_mode);
 }
 
-
-
 void start_every(int delay, int period, ptr p) {
 
 	stop_every();
@@ -417,7 +401,6 @@ void start_every(int delay, int period, ptr p) {
 // only one thing runs every.
 ptr every(int delay, int period, int mode, ptr p)
 {
-
 	swap_mode = mode;
 	if (delay == 0 || period == 0) {
 		stop_every();
@@ -519,9 +502,7 @@ void Engine::Start() {
 		g_commands_mutex = CreateMutex(nullptr, FALSE, nullptr);
 	}
  
-
 	init_commands();
-
 }
 
 bool Engine::Spin(const int turns)
@@ -534,6 +515,7 @@ void Engine::Stop()
 {
 	cancel_commands();
 	stop_every();
+
 }
 
 ptr Engine::Run(ptr f)

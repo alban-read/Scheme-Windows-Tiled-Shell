@@ -40,26 +40,64 @@ void CMainFrame::HideSingleContainerTab(BOOL hideSingle)
 	}
 }
 
+
+void CMainFrame::LoadEvalDockers()
+{
+	const DWORD dw_style = DS_CLIENTEDGE; // The style added to each docker
+	const auto width = GetWindowRect().Size().cx;
+	auto in = AddDockedChild(new CDockText, DS_DOCKED_LEFT | dw_style, width / 2.0, ID_DOCK_TEXT1);
+	in->AddDockedChild(new CDockResponseText, DS_DOCKED_BOTTOM | dw_style, 200, ID_DOCK_TEXT3);
+	AddDockedChild(new CDockTranscriptText, DS_DOCKED_LEFT | DS_DOCKED_RIGHT | dw_style, 200, ID_DOCK_TEXT2);
+}
+
+
 void CMainFrame::LoadDefaultDockers()
 {
 	const DWORD dw_style = DS_CLIENTEDGE; // The style added to each docker
 	const auto width = GetWindowRect().Size().cx;
-	input = AddDockedChild(new CDockText, DS_DOCKED_LEFT | dw_style, width / 2.2, ID_DOCK_TEXT1);
-	input->AddDockedChild(new CDockResponseText, DS_DOCKED_BOTTOM | dw_style, 200, ID_DOCK_TEXT3);
-	image = AddDockedChild(new CDockImage, DS_DOCKED_LEFT | DS_DOCKED_RIGHT | dw_style, width / 3, ID_DOCK_IMAGE1);
-	image->AddDockedChild(new CDockTranscriptText, DS_DOCKED_BOTTOM | dw_style, 200, ID_DOCK_TEXT2);
+	auto in = AddDockedChild(new CDockText, DS_DOCKED_LEFT | dw_style, width / 2.2, ID_DOCK_TEXT1);
+	in->AddDockedChild(new CDockResponseText, DS_DOCKED_BOTTOM | dw_style, 200, ID_DOCK_TEXT3);
+	auto im = AddDockedChild(new CDockImage, DS_DOCKED_LEFT | DS_DOCKED_RIGHT | dw_style, width / 3, ID_DOCK_IMAGE1);
+	im->AddDockedChild(new CDockTranscriptText, DS_DOCKED_BOTTOM | dw_style, 200, ID_DOCK_TEXT2);
 }
 
 void CMainFrame::load_browser_dockers()
 {
 	const auto width = GetWindowRect().Size().cx;
 	const DWORD dw_style = DS_CLIENTEDGE; // The style added to each docker
-	browser = AddDockedChild(new CDockWebViewer, DS_DOCKED_LEFT | dw_style, width / 3, ID_DOCK_BROWSER1);
-	input = AddDockedChild(new CDockText, DS_DOCKED_LEFT | dw_style, width / 3, ID_DOCK_TEXT1);
-	input->AddDockedChild(new CDockResponseText, DS_DOCKED_BOTTOM | dw_style, 200, ID_DOCK_TEXT3);
-	trans = AddDockedChild(new CDockImage, DS_DOCKED_LEFT | DS_DOCKED_RIGHT | dw_style, width / 3, ID_DOCK_IMAGE1);
-	trans->AddDockedChild(new CDockTranscriptText, DS_DOCKED_CONTAINER | dw_style, width / 3, ID_DOCK_TEXT2);
+	AddDockedChild(new CDockWebViewer, DS_DOCKED_LEFT | dw_style, width / 3, ID_DOCK_BROWSER1);
+	auto in = AddDockedChild(new CDockText, DS_DOCKED_LEFT | dw_style, width / 3, ID_DOCK_TEXT1);
+	in->AddDockedChild(new CDockResponseText, DS_DOCKED_BOTTOM | dw_style, 200, ID_DOCK_TEXT3);
+	auto im = AddDockedChild(new CDockImage, DS_DOCKED_LEFT | DS_DOCKED_RIGHT | dw_style, width / 3, ID_DOCK_IMAGE1);
+	im->AddDockedChild(new CDockTranscriptText, DS_DOCKED_CONTAINER | dw_style, width / 3, ID_DOCK_TEXT2);
 }
+
+
+void CMainFrame::load_browser_image_dockers()
+{
+	const auto width = GetWindowRect().Size().cx;
+	const DWORD dw_style = DS_CLIENTEDGE; // The style added to each docker
+	input=AddDockedChild(new CDockText, DS_DOCKED_LEFT | dw_style, width / 3, ID_DOCK_TEXT1);
+	input->AddDockedChild(new CDockResponseText, DS_DOCKED_CONTAINER | dw_style, 200, ID_DOCK_TEXT3);
+	input->AddDockedChild(new CDockTranscriptText, DS_DOCKED_CONTAINER | dw_style, 200, ID_DOCK_TEXT2);
+	image=AddDockedChild(new CDockImage, DS_DOCKED_TOP | DS_DOCKED_RIGHT | dw_style, width / 3, ID_DOCK_IMAGE1);
+	browser=input->AddDockedChild(new CDockWebViewer, DS_DOCKED_CONTAINER | dw_style, width / 3, ID_DOCK_BROWSER1);
+}
+
+void CMainFrame::load_image_dockers()
+{
+	const auto width = GetWindowRect().Size().cx;
+	const DWORD dw_style = DS_CLIENTEDGE; // The style added to each docker
+	input = AddDockedChild(new CDockText, DS_DOCKED_LEFT | dw_style, width / 3, ID_DOCK_TEXT1);
+	auto x=AddDockedChild(new CDockResponseText, DS_DOCKED_BOTTOM | dw_style, 160, ID_DOCK_TEXT3);
+	x->AddDockedChild(new CDockTranscriptText, DS_DOCKED_RIGHT | dw_style, 160, ID_DOCK_TEXT2);
+    AddDockedChild(new CDockImage, DS_DOCKED_TOP | DS_DOCKED_RIGHT | dw_style, width / 3, ID_DOCK_IMAGE1);
+}
+
+void CMainFrame::load_full_image_dockers()
+{
+}
+
 
 CDocker* CMainFrame::NewDockerFromID(int id)
 {
@@ -102,6 +140,9 @@ BOOL CMainFrame::OnCommand(WPARAM wparam, LPARAM lparam)
 	case IDM_FILE_EXIT:         return OnFileExit();
 	case IDM_DOCK_DEFAULT:      return OnDockDefault();
 	case ID_DOCKING_BROWSERLAYOUT: return OnDockBrowser();
+	case ID_DOCKING_IMAGELAYOUT: return on_dock_image();
+	case ID_DOCKING_IMAGE_EVALUATOR: return on_dock_image_eval();
+	case ID_DOCKING_EVALUATOR: return on_dock_eval();
 	case IDM_DOCK_CLOSEALL:     return OnDockCloseAll();
 	case IDW_VIEW_STATUSBAR:    return OnViewStatusBar();
 	case IDW_VIEW_TOOLBAR:      return OnViewToolBar();
@@ -184,6 +225,7 @@ void CMainFrame::Stopping()
 	Sleep(100);
 	CD2DView::Stop();
 	Sleep(100);
+
 }
 
 BOOL CMainFrame::OnDockDefault()
@@ -219,13 +261,6 @@ BOOL CMainFrame::OnHideSingleTab()
 	return TRUE;
 }
 
-void CMainFrame::load_image_dockers()
-{
-}
-
-void CMainFrame::load_full_image_dockers()
-{
-}
 
 
 BOOL CMainFrame::on_dock_close_all()
@@ -240,6 +275,38 @@ BOOL CMainFrame::on_dock_default()
 
 BOOL CMainFrame::on_dock_image()
 {
+	Stopping();
+	SetRedraw(FALSE);
+	CloseAllDockers();
+	load_browser_image_dockers();
+	Sleep(100);
+	SetRedraw(TRUE);
+	RedrawWindow(RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE | RDW_ALLCHILDREN);
+	return 0;
+}
+
+
+BOOL CMainFrame::on_dock_image_eval()
+{
+	Stopping();
+	SetRedraw(FALSE);
+	CloseAllDockers();
+	load_image_dockers();
+	Sleep(100);
+	SetRedraw(TRUE);
+	RedrawWindow(RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE | RDW_ALLCHILDREN);
+	return 0;
+}
+
+BOOL CMainFrame::on_dock_eval()
+{
+	Stopping();
+	SetRedraw(FALSE);
+	CloseAllDockers();
+	LoadEvalDockers();
+	Sleep(100);
+	SetRedraw(TRUE);
+	RedrawWindow(RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE | RDW_ALLCHILDREN);
 	return 0;
 }
 

@@ -1,6 +1,6 @@
  
 ;; example just draws circles.
- 
+(image-size 800 600)
 (define circlecount 1000)
 
 ;; make a new circle

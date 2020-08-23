@@ -32,10 +32,14 @@ public:
     void load_image_dockers();
     void load_full_image_dockers();
     void load_browser_dockers();
+	void load_browser_image_dockers();
+    void LoadEvalDockers();
 
     BOOL on_dock_close_all();
     BOOL on_dock_default();
     BOOL on_dock_image();
+    BOOL on_dock_image_eval();
+	BOOL on_dock_eval();
     BOOL OnDockBrowser();
  
     CDocker* input{};
@@ -68,6 +72,7 @@ protected:
 
 private:
     void HideSingleContainerTab(BOOL hideSingle);
+
     void SetContainerTabsAtTop(BOOL isAtTop);
 
     CDockContainer m_view;

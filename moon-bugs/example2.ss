@@ -94,7 +94,8 @@
     (when (and (< (cdr (assq 'recent keys)) 50)
                (cdr (assq 'right keys)))
       (set! h-x (+ h-x 4.0)))))
-
+	  
+(image-size 800 600)
 (load-all-sprites)
 (enemy-wave-one)
 

@@ -61,14 +61,12 @@ struct sprite_att {
 
 sprite_att sprite_attributes[bank_size];
 
-
 ID2D1Factory* pD2DFactory;
 
 // hiDPI
 float g_DPIScaleX = 1.0f;
 float g_DPIScaleY = 1.0f;
 float graphics_pen_width = static_cast<float>(1.2);
-
 
 // fill 
 float fill_r = 0.0f;
@@ -80,7 +78,6 @@ float line_r = 0.0f;
 float line_g = 0.0f;
 float line_b = 0.0f;
 float line_a = 0.0f;
-
 
 #pragma warning(disable : 4996)
 
@@ -111,7 +108,6 @@ ptr d2d_color(float r, float g, float b, float a) {
 	return Strue;
 }
 
-
 ptr d2d_fill_color(float r, float g, float b, float a) {
 
 	fill_r = r; fill_g = g; fill_b = b; fill_a = a;
@@ -140,7 +136,6 @@ void CheckLineBrush()
 		d2d_color(0.0, 0.0, 0.0, 1.0);
 	}
 }
-
 
 void d2d_CreateOffscreenBitmap()
 {
@@ -236,7 +231,6 @@ ptr d2d_MakeSpriteInBank(int n, int w, int h, ptr f)
 	return Strue;
 }
 
-
 void swap_buffers(int n) {
 
 	if (pRenderTarget == nullptr) {
@@ -266,7 +260,6 @@ void swap_buffers(int n) {
 	Sleep(1);
 }
 
-
 ptr d2d_zclear(float r, float g, float b, float a) {
 	ActiveRenderTarget->Clear((D2D1::ColorF(r, g, b, a)));
 	return Strue;
@@ -287,7 +280,6 @@ ptr d2d_clear(float r, float g, float b, float a) {
 	ReleaseMutex(g_image_rotation_mutex);
 	return Strue;
 }
-
 
 // cannot save hw rendered bitmap to image :( 
 ptr d2d_save(char* filename) {
@@ -328,7 +320,6 @@ ptr d2d_fill_ellipse(float x, float y, float w, float h) {
 	return Strue;
 }
 
-
 ptr d2d_zellipse(float x, float y, float w, float h) {
 	auto stroke_width = d2d_stroke_width;
 	auto stroke_style = d2d_stroke_style;
@@ -336,6 +327,7 @@ ptr d2d_zellipse(float x, float y, float w, float h) {
 	ActiveRenderTarget->DrawEllipse(ellipse, pColourBrush, d2d_stroke_width);
 	return Strue;
 }
+
 ptr d2d_ellipse(float x, float y, float w, float h) {
 
 	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
@@ -362,8 +354,6 @@ ptr d2d_zline(float x, float y, float x1, float y1) {
 	return Strue;
 }
 
-
-
 ptr d2d_line(float x, float y, float x1, float y1) {
 	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
 		return Sfalse;
@@ -378,7 +368,6 @@ ptr d2d_line(float x, float y, float x1, float y1) {
 	ActiveRenderTarget->EndDraw();
 	return Strue;
 }
-
 
 // runs lambda f inside a draw operation
 ptr d2d_draw_func(ptr f) {
@@ -397,11 +386,10 @@ ptr d2d_draw_func(ptr f) {
 	{
 		return Sfalse;
 	}
+
 	return Strue;
 }
 
-
- 
 ptr d2d_zrectangle(float x, float y, float w, float h) {
 	auto stroke_width = d2d_stroke_width;
 	auto stroke_style = d2d_stroke_style;
@@ -440,13 +428,11 @@ ptr d2d_rounded_rectangle(float x, float y, float w, float h, float rx, float ry
 	return Strue;
 }
 
-
 ptr d2d_zfill_rectangle(float x, float y, float w, float h) {
 	D2D1_RECT_F rectangle1 = D2D1::RectF(x, y, w, h);
 	ActiveRenderTarget->FillRectangle(&rectangle1, pfillColourBrush);
 	return Strue;
 }
-
 
 ptr d2d_fill_rectangle(float x, float y, float w, float h) {
 
@@ -465,7 +451,6 @@ ptr d2d_zmatrix_identity() {
 	ActiveRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
 	return Strue;
 }
-
 
 // reset matrix
 ptr d2d_matrix_identity() {
@@ -583,7 +568,6 @@ ptr d2d_matrix_scalerottrans(float a, float x, float y, float x1, float y1, floa
 	return Strue;
 }
 
-
 ptr d2d_zmatrix_skew(float x, float y, float w, float h) {
 	ActiveRenderTarget->SetTransform(
 		D2D1::Matrix3x2F::Skew(
@@ -592,7 +576,6 @@ ptr d2d_zmatrix_skew(float x, float y, float w, float h) {
 	);
 	return Strue;
 }
-
 
 ptr d2d_matrix_skew(float x, float y) {
 	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
@@ -699,7 +682,6 @@ IDWriteFactory* pDWriteFactory;
 IDWriteTextFormat* TextFont;
 ID2D1SolidColorBrush* pBlackBrush;
 
-
 ptr d2d_text_mode(int n) {
 
 	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
@@ -738,7 +720,6 @@ ptr d2d_write_text(float x, float y, char* s) {
 	return Strue;
 }
 
-
 ptr d2d_set_font(char* s, float size) {
 
 	SafeRelease(&TextFont);
@@ -759,8 +740,6 @@ ptr d2d_set_font(char* s, float size) {
 	}
 	return Snil;
 }
-
-
 
 void d2d_sprite_loader(char* filename, int n)
 {
@@ -847,7 +826,6 @@ ptr d2d_load_sprites(char* filename, int n) {
 	return Strue;
 }
 
-
 ptr d2d_zrender_sprite(int n, float dx, float dy) {
 
 	if (n > bank_size - 1) {
@@ -869,7 +847,6 @@ ptr d2d_zrender_sprite(int n, float dx, float dy) {
 	ActiveRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
 	return Strue;
 }
-
 
 // from sheet n; at sx, sy to dx, dy, w,h
 ptr d2d_render_sprite(int n, float dx, float dy) {
@@ -922,7 +899,6 @@ ptr d2d_zrender_sprite_rotscale(int n, float dx, float dy, float a, float s) {
 	return Strue;
 }
 
-
 ptr d2d_render_sprite_rotscale(int n, float dx, float dy, float a, float s) {
 
 	if (n > bank_size - 1) {
@@ -952,7 +928,6 @@ ptr d2d_render_sprite_rotscale(int n, float dx, float dy, float a, float s) {
 	return Strue;
 }
 
-
 // from sheet n; at sx, sy to dx, dy, w,h scale up
 ptr d2d_zrender_sprite_sheet(int n, float dx, float dy, float dw, float dh,
 	float sx, float sy, float sw, float sh, float scale) {
@@ -975,7 +950,6 @@ ptr d2d_zrender_sprite_sheet(int n, float dx, float dy, float dw, float dh,
  
 	return Strue;
 }
-
 
 // from sheet n; at sx, sy to dx, dy, w,h scale up
 ptr d2d_render_sprite_sheet(int n, float dx, float dy, float dw, float dh,
@@ -1003,7 +977,6 @@ ptr d2d_render_sprite_sheet(int n, float dx, float dy, float dw, float dh,
 	ActiveRenderTarget->EndDraw();
 	return Strue;
 }
-
 
 // from sheet n; at sx, sy to dx, dy, w,h scale up
 ptr d2d_zrender_sprite_sheet_rot_scale(int n, float dx, float dy, float dw, float dh,
@@ -1059,8 +1032,6 @@ ptr d2d_render_sprite_sheet_rot_scale(int n, float dx, float dy, float dw, float
 	ActiveRenderTarget->EndDraw();
 	return Strue;
 }
-
-
 
 void CreateFactory() {
 
@@ -1142,7 +1113,6 @@ HRESULT Create_D2D_Device_Dep(HWND h)
 	return 0;
 }
 
-
 void safe_release() {
 
 	SafeRelease(&pRenderTarget);
@@ -1153,7 +1123,6 @@ void safe_release() {
 	SafeRelease(&BitmapRenderTarget);
 	SafeRelease(&BitmapRenderTarget2);
 }
-
 
 int complexity_limit = 500;
 int commands_length;
@@ -1233,7 +1202,6 @@ ptr add_draw_sprite(int n, float x, float y) {
 	ReleaseMutex(g_sprite_commands_mutex);
 	return Strue;
 }
-
 
 ptr add_draw_rect(float x, float y, float w, float h) {
 	
@@ -1455,7 +1423,6 @@ ptr add_write_text(float x, float y, char*s) {
 	return Strue;
 }
 
-
 ptr add_scaled_rotated_sprite(int n, float x, float y, float a, float s) {
 
 	if (x > prefer_width + ignore_clip) return Snil;
@@ -1513,7 +1480,6 @@ ptr add_render_sprite_sheet(int n,
 	ReleaseMutex(g_sprite_commands_mutex);
 	return Strue;
 }
-
 
 ptr clear_all_draw_sprite() {
 	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
@@ -1683,7 +1649,6 @@ void render_sprite_commands() {
 	ReleaseMutex(g_sprite_commands_mutex);
 }
 
-
 ptr d2d_image_size(int w, int h)
 {
 	prefer_width = w;
@@ -1705,7 +1670,6 @@ ptr d2d_release() {
 	safe_release();
 	return Strue;
 }
-
 
 void onPaint(HWND hWnd) {
 
@@ -1785,9 +1749,6 @@ ptr step_func(ptr lpParam) {
 		PostMessageW(main_window, WM_USER + 501, (WPARAM)0, (LPARAM)0);
 	return Strue;
 }
-
-
-
 
 // constructor
 CD2DView::CD2DView()
@@ -1900,7 +1861,6 @@ LRESULT CD2DView::OnDisplayChange(UINT, WPARAM, LPARAM)
     return 0;
 }
 
-
 struct kp {
     int when;
     boolean left;
@@ -1986,7 +1946,6 @@ ptr keyboard_debounce(int n) {
 
 LRESULT CD2DView::WndProc(UINT msg, WPARAM wparam, LPARAM lparam)
 {
-
     switch (msg)
     {
     case WM_KEYDOWN:
@@ -1999,10 +1958,8 @@ LRESULT CD2DView::WndProc(UINT msg, WPARAM wparam, LPARAM lparam)
     case WM_SIZE:           return OnSize(msg, wparam, lparam);
     }
 
-
     return WndProcDefault(msg, wparam, lparam);
 }
-
 
 
 void add_d2d_commands() {
@@ -2061,7 +2018,6 @@ void add_d2d_commands() {
 	Sforeign_symbol("add_draw_rect", static_cast<ptr>(add_draw_rect));
 	Sforeign_symbol("add_fill_rect", static_cast<ptr>(add_fill_rect));
 	Sforeign_symbol("add_pen_width", static_cast<ptr>(add_pen_width));
-
 
 	Sforeign_symbol("d2d_zmatrix_skew", static_cast<ptr>(d2d_zmatrix_skew));
 	Sforeign_symbol("d2d_zmatrix_translate", static_cast<ptr>(d2d_zmatrix_translate));

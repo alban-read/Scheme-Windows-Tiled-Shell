@@ -39,7 +39,6 @@ void sc_setText(HWND h, char* text) {
 	send_editor(h, SCI_SETTEXT, l, reinterpret_cast<LPARAM>(text));
 }
 
-
 void show_line_numbers(HWND h) {
     send_editor(h, SCI_SETMARGINTYPEN, 0, SC_MARGIN_NUMBER);
     send_editor(h, SCI_SETMARGINWIDTHN, 0, 48);
@@ -92,14 +91,17 @@ static const char g_scheme[] =
 static const char g_scheme2[] =
 "add-clear-image add-draw-rect add-draw-ellipse add-draw-sprite  add-fill-colour add-fill-ellipse "
 "add-fill-rect add-draw-line add-line-colour add-pen-width add-render-sprite add-scaled-rotated-sprite add-write-text "
-"after " 
+"after api-call " 
 "batch-draw-ellipse batch-draw-line batch-draw-rect batch-draw-scaled-rotated-sprite "
 "batch-draw-sprite batch-fill-ellipse batch-fill-rect batch-render-sprite batch-render-sprite-scale-rot "
 "clear-image clear-sprite-command clear-sprite-commands draw-into-sprite draw-ellipse draw-line draw-rect draw-scaled-rotated-sprite draw-sprite " 
-"every font graphics-keys fill-colour fill-ellipse fill-rect identity image-size "
+"every eval->string eval->text " 
+"font fill-colour fill-ellipse fill-rect graphics-keys identity image-size "
+"keyboard-delay "
 "line-colour load-sound load-sprites make-sprite "
-"pen-width play-sound render render-sprite render-sprite-scale-rot release rotate  "
-"set-draw-sprite set-every-function show stop-every write-text draw-into-sprite ";
+"pen-width play-sound render render-sprite render-sprite-scale-rot release restart-engine rotate  "
+"set-draw-sprite set-every-function show sprite-size stop-every "
+"web-message write-text draw-into-sprite ";
 
 static const char g_scheme3[] =
 " ";
@@ -183,6 +185,8 @@ void initialize_editor(HWND h) {
 	send_editor(h, SCI_SETWRAPMODE, 1);
 	send_editor(h, SCI_SETWRAPVISUALFLAGS, 2);
 	send_editor(h, SCI_SETWRAPSTARTINDENT, 6);
+
+	send_editor(h, SCI_SETTABWIDTH, 2);
 
 	// auto sel
 	send_editor(h, SCI_AUTOCSETSEPARATOR, ',');
@@ -458,6 +462,7 @@ void set_inputed(char* s)
 
 ptr get_inputed()
 {
+	if (inputed == nullptr) return Sstring("");
 	const int l = send_editor(inputed, SCI_GETLENGTH) + 1;
 	auto cmd = new(std::nothrow) char[l];
 	memset(cmd, 0, l);
@@ -474,33 +479,43 @@ void appendEditor(char* s)
 }
 void appendTranscript(char* s)
 {
-	sc_appendText(transcript, s);
+
+	if(transcript!=nullptr)
+		sc_appendText(transcript, s);
 }
  
 void appendTranscriptNL(char* s)
 {
+	if (transcript != nullptr) {
 		sc_appendText(transcript, s);
 		sc_appendText(transcript, "\r\n");
+	}
 }
 
 
 // called from scheme engine.
 void appendTranscript1(char* s)
 {
+	if (transcript != nullptr) {
 		sc_appendText(transcript, s);
+	}
 }
 
 void appendTranscript2(char* s, char* s1)
 {
+	if (transcript != nullptr) {
 		sc_appendText(transcript, s);
 		sc_appendText(transcript, " ");
 		sc_appendText(transcript, s1);
+	}
 }
 
 
 void clear_transcript()
 {
-	send_editor(transcript, SCI_CLEARALL);
+	if (transcript != nullptr) {
+		send_editor(transcript, SCI_CLEARALL);
+	}
 }
  
 void add_transcript_commands() {

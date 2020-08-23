@@ -4,6 +4,7 @@
 (define circlecount 1000)
 
  ;; make some circle sprites
+(image-size 800 600)
 (for s from 1 to 500
  (make-sprite s 80 80 
 	(lambda ()
