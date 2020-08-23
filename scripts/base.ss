@@ -701,3 +701,18 @@
     (if (< n api-call-limit)
         (let ([f (vector-ref api-calls n)])
           (if (procedure? f) (apply f (list n s1 )))))))
+		  
+
+(define safely 
+  (lambda (f)
+    (define op (open-output-string))
+    (trace-output-port op)
+    (console-output-port op)
+    (console-error-port op)
+    (enable-interrupts)
+    (try (begin (f) (gc))
+		(catch
+		  (lambda (c)
+            (println
+             (call-with-string-output-port
+              (lambda (p) (display-condition c p)))))))))
