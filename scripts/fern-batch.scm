@@ -51,4 +51,4 @@
 (fill-rect 0.0 0.0 400.0 600.0)
 (set-every-function 1000 33 1 
 		(lambda ()
-		  (fern)(gc)))
+		  (safely fern)))

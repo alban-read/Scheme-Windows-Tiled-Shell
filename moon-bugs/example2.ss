@@ -109,7 +109,7 @@
 
 (set-every-function 1000 33 0 
 		(lambda ()
-		  (game-step)(gc)))
+		  (safely game-step)))
 		  
 		  
 		  

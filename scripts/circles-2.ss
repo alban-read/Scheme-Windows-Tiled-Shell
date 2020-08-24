@@ -90,4 +90,4 @@
  
 (set-every-function 1000 33 2 
 		(lambda ()
-		  (circle-step)(gc)))
+		  (safely circle-step)))

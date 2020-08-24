@@ -46,4 +46,4 @@
    (check-keys (graphics-keys))
    (draw-scene h-x 100.0 20.0))) 
 
-(game-step)(show 0)
+(safely game-step)(show 0)

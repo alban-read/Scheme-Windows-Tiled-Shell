@@ -205,7 +205,7 @@
 
 (set-every-function 1000 16 2 
 		(lambda ()
-		  (game-step) (gc)))
+		  (safely game-step)))
 
  
  
