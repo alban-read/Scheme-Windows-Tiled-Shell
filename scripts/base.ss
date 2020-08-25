@@ -457,10 +457,17 @@
    ((foreign-procedure "d2d_zfill_ellipse"
     (float float float float) ptr) x y w h)))
 
+(define fill-linear-rect
+ (lambda (x y w h x1 y1 x2 y2)
+   ((foreign-procedure "d2d_linear_gradient_fill_rectangle"
+    (float float float float float float float float) ptr) x y w h x1 y1 x2 y2)))
+	
+ 
 (define fill-rect
  (lambda (x y w h)
    ((foreign-procedure "d2d_fill_rectangle"
-    (float float float float) ptr) x y w h)))
+    (float float float float) ptr) x y w h)))	
+	
 	
 (define add-fill-rect
  (lambda (x y w h)
@@ -481,6 +488,19 @@
  (lambda (r g b a)
    ((foreign-procedure "add_fill_colour"
     (float float float float) ptr) r g b a)))
+	
+	
+ (define linear-gradiant-colour
+	 (lambda (p1 r1 g1 b1 a1 
+			  p2 r2 g2 b2 a2 
+			  p3 r3 g3 b3 a3  )
+	   ((foreign-procedure "d2d_linear_gradient_color"
+		(float float float float float 
+		 float float float float float 
+		 float float float float float 
+		) ptr) p1 r1 g1 b1 a1 
+			   p2 r2 g2 b2 a2 
+			   p3 r3 g3 b3 a3)))	
 	
 (define clear-image
  (lambda (r g b a)
