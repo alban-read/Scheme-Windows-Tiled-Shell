@@ -72,10 +72,6 @@ struct sprite_att {
 sprite_att sprite_attributes[bank_size];
 
 
-
-
-
-
 ID2D1Factory* pD2DFactory;
 
 // hiDPI
@@ -157,7 +153,7 @@ ptr d2d_linear_gradient_color
 	ID2D1GradientStopCollection* pGradientStops = NULL;
 	HRESULT hr = pRenderTarget->CreateGradientStopCollection(
 		stops,
-		2,
+		3,
 		D2D1_GAMMA_2_2,
 		D2D1_EXTEND_MODE_CLAMP,
 		&pGradientStops
@@ -175,6 +171,83 @@ ptr d2d_linear_gradient_color
 	return Strue;
 }
 
+ptr d2d_linear_gradient_color_list( ptr l) {
+
+	if (pRenderTarget == nullptr)
+	{
+		return Snil;
+	}
+
+	if (l == Snil) {
+		return Snil;
+	}
+
+	Slock_object(l);
+	ptr item = Snil;
+	auto len = Sfixnum_value(CALL1("length", l));
+	D2D1_GRADIENT_STOP stops[8];
+	
+
+	if (len < 2) {
+		Sunlock_object(l);
+		return Snil;
+	}
+
+	for (int i = 0; i < len; i++) {
+
+		float p = 0.0f;
+		float r = 0.0f;
+		float g = 0.0f;
+		float b = 0.0f;
+		float a = 0.0f;
+
+		stops[i].position = 0.0f;
+		stops[i].color.a = 0.0f;
+		stops[i].color.r = 0.0f;
+		stops[i].color.g = 0.0f;
+		stops[i].color.b = 0.0f;
+
+
+		item = Scar(l);
+		l = Scdr(l);
+
+		p = Sflonum_value(Scar(item)); item = Scdr(item);
+		r = Sflonum_value(Scar(item)); item = Scdr(item);
+		g = Sflonum_value(Scar(item)); item = Scdr(item);
+		b = Sflonum_value(Scar(item)); item = Scdr(item);
+		a = Sflonum_value(Scar(item)); item = Scdr(item);
+
+		stops[i].position = p;
+		stops[i].color.r = r;
+		stops[i].color.g = g;
+		stops[i].color.b = b;
+		stops[i].color.a = a;
+
+	}
+
+	ID2D1GradientStopCollection* pGradientStops = NULL;
+	HRESULT hr = pRenderTarget->CreateGradientStopCollection(
+		stops,
+		len,
+		D2D1_GAMMA_2_2,
+		D2D1_EXTEND_MODE_CLAMP,
+		&pGradientStops
+	);
+
+	const D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES& linearGradientBrushProperties = {};
+
+	SafeRelease(&pLinearBrush);
+
+	hr = pRenderTarget->CreateLinearGradientBrush(
+		linearGradientBrushProperties,
+		pGradientStops,
+		&pLinearBrush
+	);
+	Sunlock_object(l);
+	return Strue;
+}
+
+
 ptr d2d_radial_gradient_color
 	(float p1, float r1, float g1, float b1, float a1,
 	float p2, float r2, float g2, float b2, float a2,
@@ -190,16 +263,98 @@ ptr d2d_radial_gradient_color
 		{p2, D2D1::ColorF(D2D1::ColorF(r2, g2, b2, a2))},
 		{p3, D2D1::ColorF(D2D1::ColorF(r3, g3, b3, a3))} };
 
-	Microsoft::WRL::ComPtr<ID2D1GradientStopCollection> stop_collection;
+	ID2D1GradientStopCollection* pGradientStops = NULL;
+	HRESULT hr = pRenderTarget->CreateGradientStopCollection(
+		stops,
+		3,
+		D2D1_GAMMA_2_2,
+		D2D1_EXTEND_MODE_CLAMP,
+		&pGradientStops
+	);
 	const D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES& radialGradientBrushProperties = {};
 
 	SafeRelease(&pRadialBrush);
 
-	HRESULT hr = pRenderTarget->CreateRadialGradientBrush(
+	hr = pRenderTarget->CreateRadialGradientBrush(
 		radialGradientBrushProperties,
-		stop_collection.Get(),
+		pGradientStops,
 		&pRadialBrush
 	);
+	return Strue;
+}
+
+
+ptr d2d_radial_gradient_color_list( ptr l) {
+
+	if (pRenderTarget == nullptr)
+	{
+		return Snil;
+	}
+
+	if (l == Snil) {
+		return Snil;
+	}
+
+	ptr item = Snil;
+	auto len = Sfixnum_value(CALL1("length", l));
+	D2D1_GRADIENT_STOP stops[8];
+	Slock_object(l);
+
+	if (len < 2) {
+		Sunlock_object(l);
+		return Snil;
+	}
+
+	for (int i = 0; i < len; i++) {
+
+		float p = 0.0f;
+		float r = 0.0f;
+		float g = 0.0f;
+		float b = 0.0f;
+		float a = 0.0f;
+
+		stops[i].position = 0.0f;
+		stops[i].color.a = 0.0f;
+		stops[i].color.r = 0.0f;
+		stops[i].color.g = 0.0f;
+		stops[i].color.b = 0.0f;
+
+		item = Scar(l);
+		l = Scdr(l);
+
+		p = Sflonum_value(Scar(item)); item = Scdr(item);
+		r = Sflonum_value(Scar(item)); item = Scdr(item);
+		g = Sflonum_value(Scar(item)); item = Scdr(item);
+		b = Sflonum_value(Scar(item)); item = Scdr(item);
+		a = Sflonum_value(Scar(item)); item = Scdr(item);
+
+		stops[i].position = p;
+		stops[i].color.r = r;
+		stops[i].color.g = g;
+		stops[i].color.b = b;
+		stops[i].color.a = a;
+
+	}
+
+	ID2D1GradientStopCollection* pGradientStops = NULL;
+	HRESULT hr = pRenderTarget->CreateGradientStopCollection(
+		stops,
+		len,
+		D2D1_GAMMA_2_2,
+		D2D1_EXTEND_MODE_CLAMP,
+		&pGradientStops
+	);
+ 
+	const D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES& radialGradientBrushProperties = {};
+
+	SafeRelease(&pRadialBrush);
+
+	hr = pRenderTarget->CreateRadialGradientBrush(
+		radialGradientBrushProperties,
+		pGradientStops,
+		&pRadialBrush
+	);
+	Sunlock_object(l);
 	return Strue;
 }
 
@@ -383,26 +538,11 @@ ptr d2d_set_stroke_width(float w) {
 	return Strue;
 }
 
-
 // unable to access these new D2Dfeatures.
 ptr d2d_DrawSpriteBatch() {
 
-
-
-
 	return Strue;
 }
-
-
-
-
-
-
-
-
-
-
-
 
 ptr d2d_zfill_ellipse(float x, float y, float w, float h) {
 	auto ellipse = D2D1::Ellipse(D2D1::Point2F(x, y), w, h);
@@ -619,7 +759,7 @@ ptr d2d_radial_gradient_fill_ellipse(
 	float x, float y, float w, float h,
 	float x1, float y1, float r1, float r2) {
 
-	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr || pRadialBrush == nullptr) {
 		return Sfalse;
 	}
 	auto ellipse = D2D1::Ellipse(D2D1::Point2F(x, y), w, h);
@@ -627,7 +767,7 @@ ptr d2d_radial_gradient_fill_ellipse(
 	pRadialBrush->SetCenter(D2D1_POINT_2F({ x1, y1 }));
 	pRadialBrush->SetRadiusX(r1);
 	pRadialBrush->SetRadiusY(r2);
-	ActiveRenderTarget->FillEllipse(ellipse, pLinearBrush);
+	ActiveRenderTarget->FillEllipse(ellipse, pRadialBrush);
 	ActiveRenderTarget->EndDraw();
 	return Strue;
 }
@@ -1526,6 +1666,67 @@ ptr add_radial_gradient_fill_rect(
 }
 
 
+ptr add_radial_gradient_fill_ellipse(
+	float x, float y, float w, float h,
+	float x1, float y1, float x2, float y2) {
+
+	if (x > prefer_width + ignore_clip) return Snil;
+	if (x < -ignore_clip) return Snil;
+	if (y < -ignore_clip) return Snil;
+	if (y > prefer_height + ignore_clip) return Snil;
+
+	int c = 1;
+	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
+	if (c > sprite_command_size - 1) {
+		ReleaseMutex(g_sprite_commands_mutex);
+		return Snil;
+	}
+	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
+	sprite_commands[c].active = true;
+	sprite_commands[c].x = x;
+	sprite_commands[c].y = y;
+	sprite_commands[c].w = w;
+	sprite_commands[c].h = h;
+	sprite_commands[c].sx = x1;
+	sprite_commands[c].sy = y1;
+	sprite_commands[c].xn = x2;
+	sprite_commands[c].yn = y2;
+	sprite_commands[c].render_type = 43;
+	commands_length++;
+	ReleaseMutex(g_sprite_commands_mutex);
+	return Strue;
+}
+
+ptr add_linear_gradient_fill_ellipse(
+	float x, float y, float w, float h,
+	float x1, float y1, float x2, float y2) {
+
+	if (x > prefer_width + ignore_clip) return Snil;
+	if (x < -ignore_clip) return Snil;
+	if (y < -ignore_clip) return Snil;
+	if (y > prefer_height + ignore_clip) return Snil;
+
+	int c = 1;
+	while (c < sprite_command_size && sprite_commands[c].render_type > 0) c++;
+	if (c > sprite_command_size - 1) {
+		ReleaseMutex(g_sprite_commands_mutex);
+		return Snil;
+	}
+	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
+	sprite_commands[c].active = true;
+	sprite_commands[c].x = x;
+	sprite_commands[c].y = y;
+	sprite_commands[c].w = w;
+	sprite_commands[c].h = h;
+	sprite_commands[c].sx = x1;
+	sprite_commands[c].sy = y1;
+	sprite_commands[c].xn = x2;
+	sprite_commands[c].yn = y2;
+	sprite_commands[c].render_type = 44;
+	commands_length++;
+	ReleaseMutex(g_sprite_commands_mutex);
+	return Strue;
+}
 
 ptr add_ellipse (float x, float y, float w, float h) {
 	
@@ -1925,8 +2126,29 @@ void render_sprite_commands() {
 					sprite_commands[i].xn,
 					sprite_commands[i].yn);
 				break;
+			case 43:
+				d2d_zlinear_gradient_fill_ellipse(
+					sprite_commands[i].x,
+					sprite_commands[i].y,
+					sprite_commands[i].w,
+					sprite_commands[i].h,
+					sprite_commands[i].sx,
+					sprite_commands[i].sy,
+					sprite_commands[i].xn,
+					sprite_commands[i].yn);
+				break;
+			case 44:
+				d2d_zradial_gradient_fill_ellipse(
+					sprite_commands[i].x,
+					sprite_commands[i].y,
+					sprite_commands[i].w,
+					sprite_commands[i].h,
+					sprite_commands[i].sx,
+					sprite_commands[i].sy,
+					sprite_commands[i].xn,
+					sprite_commands[i].yn);
+				break;
 			}
-
 		}
 		
 		if ((i % complexity_limit) == 0) {
@@ -1950,15 +2172,12 @@ ptr d2d_image_size(int w, int h)
 {
 	prefer_width = w;
 	prefer_height = h;
-
 	safe_release();
-
 	Create_D2D_Device_Dep(main_window);
 	while (pRenderTarget == nullptr) {
 		Sleep(10);
 	}
 	d2d_fill_rectangle(0.0, 0.0, 1.0 * w, 1.0 * h);
-
 	return Strue;
 }
 
@@ -1988,7 +2207,6 @@ void onPaint(HWND hWnd) {
 	hr = Create_D2D_Device_Dep(hWnd);
 	if (SUCCEEDED(hr))
 	{
-
 		pRenderTarget->Resize(size);
 		pRenderTarget->BeginDraw();
 		D2D1_SIZE_F renderTargetSize = pRenderTarget->GetSize();
@@ -2006,7 +2224,6 @@ void onPaint(HWND hWnd) {
 
 			safe_release();
 		}
-
 	}
 
 	if (hr == D2DERR_RECREATE_TARGET)
@@ -2020,18 +2237,15 @@ void onPaint(HWND hWnd) {
 	{
 		::ValidateRect(hWnd, NULL);
 	}
-
 	ReleaseMutex(g_image_rotation_mutex);
 }
 
 void step(ptr lpParam) {
 
 	WaitForSingleObject(g_image_rotation_mutex, INFINITE);
-
 	if (Sprocedurep(lpParam)) {
 		Scall0(lpParam);
 	}
-
 	ReleaseMutex(g_image_rotation_mutex);
 }
 
@@ -2077,7 +2291,6 @@ HRESULT CD2DView::OnRender()
     return 0;
 }
 
-
 void CD2DView::OnResize(UINT width, UINT height)
 {
   
@@ -2088,8 +2301,6 @@ void CD2DView::Stop()
 	safe_release();
 	ReleaseMutex(g_image_rotation_mutex);
 }
-
-
 
 void scan_keys();
 void CD2DView::Step(ptr n)
@@ -2103,7 +2314,6 @@ void CD2DView::Swap(int n)
 	if( n==2) render_sprite_commands();
 	swap_buffers(n);
 }
-
 
 void CD2DView::PreCreate(CREATESTRUCT& cs)
 {
@@ -2131,7 +2341,6 @@ int CD2DView::OnCreate(CREATESTRUCT& cs)
 void CD2DView::OnDestroy()
 {
 	safe_release();
-  
 }
 
 LRESULT CD2DView::OnPaint(UINT, WPARAM, LPARAM)
@@ -2261,74 +2470,76 @@ LRESULT CD2DView::WndProc(UINT msg, WPARAM wparam, LPARAM lparam)
 
 void add_d2d_commands() {
 
-	Sforeign_symbol("d2d_matrix_identity", static_cast<ptr>(d2d_matrix_identity));
-	Sforeign_symbol("d2d_matrix_rotate", static_cast<ptr>(d2d_matrix_rotate));
-	Sforeign_symbol("d2d_render_sprite", static_cast<ptr>(d2d_render_sprite));
-	Sforeign_symbol("d2d_render_sprite_rotscale", static_cast<ptr>(d2d_render_sprite_rotscale));
-	Sforeign_symbol("d2d_render_sprite_sheet", static_cast<ptr>(d2d_render_sprite_sheet));
-	Sforeign_symbol("d2d_render_sprite_sheet_rot_scale", static_cast<ptr>(d2d_render_sprite_sheet_rot_scale));
-	Sforeign_symbol("sprite_size", static_cast<ptr>(sprite_size));
-	Sforeign_symbol("d2d_load_sprites", static_cast<ptr>(d2d_load_sprites));
-	Sforeign_symbol("d2d_FreeAllSprites", static_cast<ptr>(d2d_FreeAllSprites));
-	Sforeign_symbol("d2d_FreeSpriteInBank", static_cast<ptr>(d2d_FreeSpriteInBank));
-	Sforeign_symbol("d2d_MakeSpriteInBank", static_cast<ptr>(d2d_MakeSpriteInBank));
-	Sforeign_symbol("d2d_write_text", static_cast<ptr>(d2d_write_text));
-	Sforeign_symbol("d2d_zwrite_text", static_cast<ptr>(d2d_zwrite_text));
-	Sforeign_symbol("d2d_text_mode", static_cast<ptr>(d2d_text_mode));
-	Sforeign_symbol("d2d_set_font", static_cast<ptr>(d2d_set_font));
-	Sforeign_symbol("d2d_color", static_cast<ptr>(d2d_color));
-	Sforeign_symbol("d2d_fill_color", static_cast<ptr>(d2d_fill_color));
-	Sforeign_symbol("d2d_linear_gradient_color", static_cast<ptr>(d2d_linear_gradient_color));
-	Sforeign_symbol("d2d_radial_gradient_color", static_cast<ptr>(d2d_radial_gradient_color));
-	Sforeign_symbol("d2d_rectangle", static_cast<ptr>(d2d_rectangle));
-	Sforeign_symbol("d2d_zrectangle", static_cast<ptr>(d2d_zrectangle));
-	Sforeign_symbol("d2d_fill_rectangle", static_cast<ptr>(d2d_fill_rectangle));
-	Sforeign_symbol("d2d_zfill_rectangle", static_cast<ptr>(d2d_zfill_rectangle));
-	Sforeign_symbol("d2d_zradial_gradient_fill_rectangle", static_cast<ptr>(d2d_zradial_gradient_fill_rectangle));
-	Sforeign_symbol("d2d_zradial_gradient_fill_ellipse", static_cast<ptr>(d2d_zradial_gradient_fill_ellipse));
-	Sforeign_symbol("d2d_radial_gradient_fill_rectangle", static_cast<ptr>(d2d_radial_gradient_fill_rectangle));
-	Sforeign_symbol("d2d_radial_gradient_fill_ellipse", static_cast<ptr>(d2d_radial_gradient_fill_ellipse));
-	Sforeign_symbol("d2d_zlinear_gradient_fill_rectangle", static_cast<ptr>(d2d_zlinear_gradient_fill_rectangle));
-	Sforeign_symbol("d2d_zlinear_gradient_fill_ellipse", static_cast<ptr>(d2d_zlinear_gradient_fill_ellipse));
-	Sforeign_symbol("d2d_linear_gradient_fill_rectangle", static_cast<ptr>(d2d_linear_gradient_fill_rectangle));
-	Sforeign_symbol("d2d_linear_gradient_fill_ellipse", static_cast<ptr>(d2d_linear_gradient_fill_ellipse));
-	Sforeign_symbol("d2d_ellipse", static_cast<ptr>(d2d_ellipse));
-	Sforeign_symbol("d2d_zellipse", static_cast<ptr>(d2d_zellipse));
-	Sforeign_symbol("d2d_fill_ellipse", static_cast<ptr>(d2d_fill_ellipse));
-	Sforeign_symbol("d2d_zfill_ellipse", static_cast<ptr>(d2d_zfill_ellipse));
-	Sforeign_symbol("d2d_line", static_cast<ptr>(d2d_line));
-	Sforeign_symbol("d2d_zline", static_cast<ptr>(d2d_zline));
-	Sforeign_symbol("d2d_render", static_cast<ptr>(d2d_render));
-	Sforeign_symbol("d2d_show", static_cast<ptr>(d2d_show));
-	Sforeign_symbol("d2d_save", static_cast<ptr>(d2d_save)); 
-	Sforeign_symbol("d2d_clear", static_cast<ptr>(d2d_clear));
-	Sforeign_symbol("d2d_zclear", static_cast<ptr>(d2d_zclear));
-	Sforeign_symbol("d2d_set_stroke_width", static_cast<ptr>(d2d_set_stroke_width));
-	Sforeign_symbol("d2d_image_size", static_cast<ptr>(d2d_image_size));
-	Sforeign_symbol("d2d_release", static_cast<ptr>(d2d_release));
-	Sforeign_symbol("d2d_draw_func", static_cast<ptr>(d2d_draw_func));
-	Sforeign_symbol("step", static_cast<ptr>(step_func));
-	Sforeign_symbol("add_clear_image", static_cast<ptr>(add_clear_image));
-	Sforeign_symbol("add_write_text", static_cast<ptr>(add_write_text));
-	Sforeign_symbol("add_draw_sprite", static_cast<ptr>(add_draw_sprite));
-	Sforeign_symbol("add_scaled_rotated_sprite", static_cast<ptr>(add_scaled_rotated_sprite));
-	Sforeign_symbol("set_draw_sprite", static_cast<ptr>(set_draw_sprite));
-	Sforeign_symbol("clear_draw_sprite", static_cast<ptr>(clear_draw_sprite));
-	Sforeign_symbol("clear_all_draw_sprite", static_cast<ptr>(clear_all_draw_sprite));
-	Sforeign_symbol("add_ellipse", static_cast<ptr>(add_ellipse));
-	Sforeign_symbol("add_fill_colour", static_cast<ptr>(add_fill_colour));
-	Sforeign_symbol("add_line_colour", static_cast<ptr>(add_line_colour));
-	Sforeign_symbol("add_fill_ellipse", static_cast<ptr>(add_fill_ellipse));
-	Sforeign_symbol("add_draw_rect", static_cast<ptr>(add_draw_rect));
-	Sforeign_symbol("add_fill_rect", static_cast<ptr>(add_fill_rect));
-	Sforeign_symbol("add_pen_width", static_cast<ptr>(add_pen_width));
-	Sforeign_symbol("d2d_zmatrix_skew", static_cast<ptr>(d2d_zmatrix_skew));
-	Sforeign_symbol("d2d_zmatrix_translate", static_cast<ptr>(d2d_zmatrix_translate));
-	Sforeign_symbol("d2d_zmatrix_transrot", static_cast<ptr>(d2d_zmatrix_transrot));
-	Sforeign_symbol("d2d_zmatrix_rotrans", static_cast<ptr>(d2d_zmatrix_identity));
-	Sforeign_symbol("d2d_zmatrix_identity", static_cast<ptr>(d2d_zmatrix_rotrans));
-	Sforeign_symbol("graphics_keys", static_cast<ptr>(graphics_keys));
-	Sforeign_symbol("keyboard_debounce", static_cast<ptr>(keyboard_debounce));
+	Sforeign_symbol("d2d_matrix_identity",					static_cast<ptr>(d2d_matrix_identity));
+	Sforeign_symbol("d2d_matrix_rotate",					static_cast<ptr>(d2d_matrix_rotate));
+	Sforeign_symbol("d2d_render_sprite",					static_cast<ptr>(d2d_render_sprite));
+	Sforeign_symbol("d2d_render_sprite_rotscale",			static_cast<ptr>(d2d_render_sprite_rotscale));
+	Sforeign_symbol("d2d_render_sprite_sheet",				static_cast<ptr>(d2d_render_sprite_sheet));
+	Sforeign_symbol("d2d_render_sprite_sheet_rot_scale",	static_cast<ptr>(d2d_render_sprite_sheet_rot_scale));
+	Sforeign_symbol("sprite_size",							static_cast<ptr>(sprite_size));
+	Sforeign_symbol("d2d_load_sprites",						static_cast<ptr>(d2d_load_sprites));
+	Sforeign_symbol("d2d_FreeAllSprites",					static_cast<ptr>(d2d_FreeAllSprites));
+	Sforeign_symbol("d2d_FreeSpriteInBank",					static_cast<ptr>(d2d_FreeSpriteInBank));
+	Sforeign_symbol("d2d_MakeSpriteInBank",					static_cast<ptr>(d2d_MakeSpriteInBank));
+	Sforeign_symbol("d2d_write_text",						static_cast<ptr>(d2d_write_text));
+	Sforeign_symbol("d2d_zwrite_text",						static_cast<ptr>(d2d_zwrite_text));
+	Sforeign_symbol("d2d_text_mode",						static_cast<ptr>(d2d_text_mode));
+	Sforeign_symbol("d2d_set_font",							static_cast<ptr>(d2d_set_font));
+	Sforeign_symbol("d2d_color",							static_cast<ptr>(d2d_color));
+	Sforeign_symbol("d2d_fill_color",						static_cast<ptr>(d2d_fill_color));
+	Sforeign_symbol("d2d_linear_gradient_color",			static_cast<ptr>(d2d_linear_gradient_color));
+	Sforeign_symbol("d2d_radial_gradient_color",			static_cast<ptr>(d2d_radial_gradient_color));
+	Sforeign_symbol("d2d_rectangle",						static_cast<ptr>(d2d_rectangle));
+	Sforeign_symbol("d2d_zrectangle",						static_cast<ptr>(d2d_zrectangle));
+	Sforeign_symbol("d2d_fill_rectangle",					static_cast<ptr>(d2d_fill_rectangle));
+	Sforeign_symbol("d2d_zfill_rectangle",					static_cast<ptr>(d2d_zfill_rectangle));
+	Sforeign_symbol("d2d_zradial_gradient_fill_rectangle",	static_cast<ptr>(d2d_zradial_gradient_fill_rectangle));
+	Sforeign_symbol("d2d_zradial_gradient_fill_ellipse",	static_cast<ptr>(d2d_zradial_gradient_fill_ellipse));
+	Sforeign_symbol("d2d_radial_gradient_fill_rectangle",	static_cast<ptr>(d2d_radial_gradient_fill_rectangle));
+	Sforeign_symbol("d2d_radial_gradient_fill_ellipse",		static_cast<ptr>(d2d_radial_gradient_fill_ellipse));
+	Sforeign_symbol("d2d_zlinear_gradient_fill_rectangle",	static_cast<ptr>(d2d_zlinear_gradient_fill_rectangle));
+	Sforeign_symbol("d2d_zlinear_gradient_fill_ellipse",	static_cast<ptr>(d2d_zlinear_gradient_fill_ellipse));
+	Sforeign_symbol("d2d_linear_gradient_fill_rectangle",	static_cast<ptr>(d2d_linear_gradient_fill_rectangle));
+	Sforeign_symbol("d2d_linear_gradient_fill_ellipse",		static_cast<ptr>(d2d_linear_gradient_fill_ellipse));
+	Sforeign_symbol("d2d_radial_gradient_color_list",		static_cast<ptr>(d2d_radial_gradient_color_list));
+	Sforeign_symbol("d2d_linear_gradient_color_list",		static_cast<ptr>(d2d_linear_gradient_color_list));
+	Sforeign_symbol("d2d_ellipse",							static_cast<ptr>(d2d_ellipse));
+	Sforeign_symbol("d2d_zellipse",							static_cast<ptr>(d2d_zellipse));
+	Sforeign_symbol("d2d_fill_ellipse",						static_cast<ptr>(d2d_fill_ellipse));
+	Sforeign_symbol("d2d_zfill_ellipse",					static_cast<ptr>(d2d_zfill_ellipse));
+	Sforeign_symbol("d2d_line",								static_cast<ptr>(d2d_line));
+	Sforeign_symbol("d2d_zline",							static_cast<ptr>(d2d_zline));
+	Sforeign_symbol("d2d_render",							static_cast<ptr>(d2d_render));
+	Sforeign_symbol("d2d_show",								static_cast<ptr>(d2d_show));
+	Sforeign_symbol("d2d_save",								static_cast<ptr>(d2d_save)); 
+	Sforeign_symbol("d2d_clear",							static_cast<ptr>(d2d_clear));
+	Sforeign_symbol("d2d_zclear",							static_cast<ptr>(d2d_zclear));
+	Sforeign_symbol("d2d_set_stroke_width",					static_cast<ptr>(d2d_set_stroke_width));
+	Sforeign_symbol("d2d_image_size",						static_cast<ptr>(d2d_image_size));
+	Sforeign_symbol("d2d_release",							static_cast<ptr>(d2d_release));
+	Sforeign_symbol("d2d_draw_func",						static_cast<ptr>(d2d_draw_func));
+	Sforeign_symbol("step",									static_cast<ptr>(step_func));
+	Sforeign_symbol("add_clear_image",						static_cast<ptr>(add_clear_image));
+	Sforeign_symbol("add_write_text",						static_cast<ptr>(add_write_text));
+	Sforeign_symbol("add_draw_sprite",						static_cast<ptr>(add_draw_sprite));
+	Sforeign_symbol("add_scaled_rotated_sprite",			static_cast<ptr>(add_scaled_rotated_sprite));
+	Sforeign_symbol("set_draw_sprite",						static_cast<ptr>(set_draw_sprite));
+	Sforeign_symbol("clear_draw_sprite",					static_cast<ptr>(clear_draw_sprite));
+	Sforeign_symbol("clear_all_draw_sprite",				static_cast<ptr>(clear_all_draw_sprite));
+	Sforeign_symbol("add_ellipse",							static_cast<ptr>(add_ellipse));
+	Sforeign_symbol("add_fill_colour",						static_cast<ptr>(add_fill_colour));
+	Sforeign_symbol("add_line_colour",						static_cast<ptr>(add_line_colour));
+	Sforeign_symbol("add_fill_ellipse",						static_cast<ptr>(add_fill_ellipse));
+	Sforeign_symbol("add_draw_rect",						static_cast<ptr>(add_draw_rect));
+	Sforeign_symbol("add_fill_rect",						static_cast<ptr>(add_fill_rect));
+	Sforeign_symbol("add_pen_width",						static_cast<ptr>(add_pen_width));
+	Sforeign_symbol("d2d_zmatrix_skew",						static_cast<ptr>(d2d_zmatrix_skew));
+	Sforeign_symbol("d2d_zmatrix_translate",				static_cast<ptr>(d2d_zmatrix_translate));
+	Sforeign_symbol("d2d_zmatrix_transrot",					static_cast<ptr>(d2d_zmatrix_transrot));
+	Sforeign_symbol("d2d_zmatrix_rotrans",					static_cast<ptr>(d2d_zmatrix_identity));
+	Sforeign_symbol("d2d_zmatrix_identity",					static_cast<ptr>(d2d_zmatrix_rotrans));
+	Sforeign_symbol("graphics_keys",						static_cast<ptr>(graphics_keys));
+	Sforeign_symbol("keyboard_debounce",					static_cast<ptr>(keyboard_debounce));
 }
 
 void CD2DView::AddCommands()
