@@ -429,7 +429,6 @@
    ((foreign-procedure "d2d_ellipse"
     (float float float float) ptr) x y w h)))
 
-	
 (define add-draw-ellipse
  (lambda (x y w h)
    ((foreign-procedure "add_ellipse"
@@ -439,7 +438,6 @@
  (lambda (x y w h)
    ((foreign-procedure "d2d_zellipse"
     (float float float float) ptr) x y w h)))
-
 
 (define fill-ellipse
  (lambda (x y w h)
@@ -458,13 +456,23 @@
     (float float float float
   	 float float float float) ptr) x y w h x1 y1 x2 y2)))
 
-
 (define add-fill-ellipse
  (lambda (x y w h)
    ((foreign-procedure "add_fill_ellipse"
     (float float float float) ptr) x y w h)))
-	
  
+(define add-fill-linear-ellipse
+ (lambda (x y w h x1 y1 x2 y2)
+   ((foreign-procedure "add_linear_gradient_fill_ellipse"
+    (float float float float
+  	 float float float float) ptr) x y w h x1 y1 x2 y2)))	
+	
+(define add-fill-radial-ellipse
+ (lambda (x y w h x1 y1 x2 y2)
+   ((foreign-procedure "add_radial_gradient_fill_ellipse"
+    (float float float float
+  	 float float float float) ptr) x y w h x1 y1 x2 y2)))
+	
 	
 (define batch-fill-ellipse
  (lambda (x y w h)
@@ -492,6 +500,17 @@
    ((foreign-procedure "add_fill_rect"
     (float float float float) ptr) x y w h)))
 	
+(define add-fill-linear-rect
+ (lambda (x y w h x1 y1 x2 y2)
+   ((foreign-procedure "add_linear_gradient_fill_rect"
+    (float float float float float float float float) ptr) x y w h x1 y1 x2 y2)))
+	
+(define add-fill-radial-rect
+ (lambda (x y w h x1 y1 x2 y2)
+   ((foreign-procedure "add_radial_gradient_fill_rect"
+    (float float float float float float float float) ptr) x y w h x1 y1 x2 y2)))	
+	
+	
 (define batch-fill-rect
  (lambda (x y w h)
    ((foreign-procedure "d2d_zfill_rectangle"
@@ -516,11 +535,41 @@
    ((foreign-procedure "d2d_radial_gradient_color_list"
 	(ptr) ptr) cl)))
 	
+(define set-radial-brush
+  (lambda (n cl)
+   ((foreign-procedure "d2d_radial_gradient_brush"
+	(int ptr) ptr) n cl)))
+	
+(define select-radial-brush
+  (lambda (n)
+   ((foreign-procedure "d2d_select_radial_brush"
+	(int) ptr) n)))	
+
+(define add-select-radial-brush
+  (lambda (n)
+   ((foreign-procedure "add_select_radial_brush"
+	(int) ptr) n)))	
+
  (define linear-gradient
   (lambda (cl)
    ((foreign-procedure "d2d_linear_gradient_color_list"
 	(ptr) ptr) cl)))
 	
+ (define set-linear-brush
+  (lambda (n cl)
+   ((foreign-procedure "d2d_linear_gradient_brush"
+	(int ptr) ptr) n cl)))
+	
+ (define select-linear-brush
+  (lambda (n)
+   ((foreign-procedure "d2d_select_linear_brush"
+	(int) ptr) n )))	
+		
+ (define add-select-linear-brush
+  (lambda (n)
+   ((foreign-procedure "add_select_linear_brush"
+	(int) ptr) n )))			
+		
 (define clear-image
  (lambda (r g b a)
    ((foreign-procedure "d2d_clear"
