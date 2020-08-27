@@ -439,6 +439,10 @@
    ((foreign-procedure "d2d_zellipse"
     (float float float float) ptr) x y w h)))
 
+
+		
+
+
 (define fill-ellipse
  (lambda (x y w h)
    ((foreign-procedure "d2d_fill_ellipse"
@@ -453,6 +457,20 @@
 (define fill-radial-ellipse
  (lambda (x y w h x1 y1 x2 y2)
    ((foreign-procedure "d2d_radial_gradient_fill_ellipse"
+    (float float float float
+  	 float float float float) ptr) x y w h x1 y1 x2 y2)))
+	 
+	 
+(define batch-fill-linear-ellipse
+ (lambda (x y w h x1 y1 x2 y2)
+   ((foreign-procedure "d2d_zlinear_gradient_fill_ellipse"
+    (float float float float
+  	 float float float float) ptr) x y w h x1 y1 x2 y2)))
+	 
+	 
+(define batch-fill-radial-ellipse
+ (lambda (x y w h x1 y1 x2 y2)
+   ((foreign-procedure "d2d_zradial_gradient_fill_ellipse"
     (float float float float
   	 float float float float) ptr) x y w h x1 y1 x2 y2)))
 
@@ -494,6 +512,16 @@
    ((foreign-procedure "d2d_radial_gradient_fill_rectangle"
     (float float float float float float float float) ptr) x y w h x1 y1 x2 y2)))
  
+	
+(define batch-fill-linear-rect
+ (lambda (x y w h x1 y1 x2 y2)
+   ((foreign-procedure "d2d_zlinear_gradient_fill_rectangle"
+    (float float float float float float float float) ptr) x y w h x1 y1 x2 y2)))
+
+(define batch-fill-radial-rect
+ (lambda (x y w h x1 y1 x2 y2)
+   ((foreign-procedure "d2d_zradial_gradient_fill_rectangle"
+    (float float float float float float float float) ptr) x y w h x1 y1 x2 y2)))	
 	
 (define add-fill-rect
  (lambda (x y w h)
