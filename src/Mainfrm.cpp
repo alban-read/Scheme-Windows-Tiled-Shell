@@ -48,6 +48,7 @@ void CMainFrame::LoadEvalDockers()
 	auto in = AddDockedChild(new CDockText, DS_DOCKED_LEFT | dw_style, width / 2.0, ID_DOCK_TEXT1);
 	in->AddDockedChild(new CDockResponseText, DS_DOCKED_BOTTOM | dw_style, 200, ID_DOCK_TEXT3);
 	AddDockedChild(new CDockTranscriptText, DS_DOCKED_LEFT | DS_DOCKED_RIGHT | dw_style, 200, ID_DOCK_TEXT2);
+ 
 }
 
 
@@ -59,6 +60,7 @@ void CMainFrame::LoadDefaultDockers()
 	in->AddDockedChild(new CDockResponseText, DS_DOCKED_BOTTOM | dw_style, 200, ID_DOCK_TEXT3);
 	auto im = AddDockedChild(new CDockImage, DS_DOCKED_LEFT | DS_DOCKED_RIGHT | dw_style, width / 3, ID_DOCK_IMAGE1);
 	im->AddDockedChild(new CDockTranscriptText, DS_DOCKED_BOTTOM | dw_style, 200, ID_DOCK_TEXT2);
+ 
 }
 
 void CMainFrame::load_browser_dockers()
@@ -70,6 +72,7 @@ void CMainFrame::load_browser_dockers()
 	in->AddDockedChild(new CDockResponseText, DS_DOCKED_BOTTOM | dw_style, 200, ID_DOCK_TEXT3);
 	auto im = AddDockedChild(new CDockImage, DS_DOCKED_LEFT | DS_DOCKED_RIGHT | dw_style, width / 3, ID_DOCK_IMAGE1);
 	im->AddDockedChild(new CDockTranscriptText, DS_DOCKED_CONTAINER | dw_style, width / 3, ID_DOCK_TEXT2);
+ 
 }
 
 
@@ -82,6 +85,7 @@ void CMainFrame::load_browser_image_dockers()
 	input->AddDockedChild(new CDockTranscriptText, DS_DOCKED_CONTAINER | dw_style, 200, ID_DOCK_TEXT2);
 	image=AddDockedChild(new CDockImage, DS_DOCKED_TOP | DS_DOCKED_RIGHT | dw_style, width / 3, ID_DOCK_IMAGE1);
 	browser=input->AddDockedChild(new CDockWebViewer, DS_DOCKED_CONTAINER | dw_style, width / 3, ID_DOCK_BROWSER1);
+ 
 }
 
 void CMainFrame::load_image_dockers()
@@ -92,6 +96,7 @@ void CMainFrame::load_image_dockers()
 	auto x=AddDockedChild(new CDockResponseText, DS_DOCKED_BOTTOM | dw_style, 160, ID_DOCK_TEXT3);
 	x->AddDockedChild(new CDockTranscriptText, DS_DOCKED_RIGHT | dw_style, 160, ID_DOCK_TEXT2);
     AddDockedChild(new CDockImage, DS_DOCKED_TOP | DS_DOCKED_RIGHT | dw_style, width / 3, ID_DOCK_IMAGE1);
+ 
 }
 
 void CMainFrame::load_full_image_dockers()
@@ -136,18 +141,39 @@ BOOL CMainFrame::OnCommand(WPARAM wparam, LPARAM lparam)
 	UINT id = LOWORD(wparam);
 	switch (id)
 	{
-	case IDM_CONTAINER_TOP:     return OnContainerTabsAtTop();
-	case IDM_FILE_EXIT:         return OnFileExit();
-	case IDM_DOCK_DEFAULT:      return OnDockDefault();
-	case ID_DOCKING_BROWSERLAYOUT: return OnDockBrowser();
-	case ID_DOCKING_IMAGELAYOUT: return on_dock_image();
-	case ID_DOCKING_IMAGE_EVALUATOR: return on_dock_image_eval();
-	case ID_DOCKING_EVALUATOR: return on_dock_eval();
-	case IDM_DOCK_CLOSEALL:     return OnDockCloseAll();
-	case IDW_VIEW_STATUSBAR:    return OnViewStatusBar();
-	case IDW_VIEW_TOOLBAR:      return OnViewToolBar();
-	case IDM_HELP_ABOUT:        return OnHelp();
-	case IDM_HIDE_SINGLE_TAB:   return OnHideSingleTab();
+	case IDM_CONTAINER_TOP:     
+		return OnContainerTabsAtTop();
+	case IDM_FILE_EXIT:         
+		return OnFileExit();
+	case IDM_FILE_OPEN:
+		return OnFileOpen();
+	case IDM_FILE_SAVE:
+		return OnFileSave();
+	case IDM_FILE_SAVE_AS:
+		return OnFileSaveAs();
+	case IDM_FILE_NEW:
+		return OnFileNew();
+
+	case IDM_DOCK_DEFAULT:      
+		return OnDockDefault();
+	case ID_DOCKING_BROWSERLAYOUT: 
+		return OnDockBrowser();
+	case ID_DOCKING_IMAGELAYOUT: 
+		return on_dock_image();
+	case ID_DOCKING_IMAGE_EVALUATOR: 
+		return on_dock_image_eval();
+	case ID_DOCKING_EVALUATOR: 
+		return on_dock_eval();
+	case IDM_DOCK_CLOSEALL:     
+		return OnDockCloseAll();
+	case IDW_VIEW_STATUSBAR:    
+		return OnViewStatusBar();
+	case IDW_VIEW_TOOLBAR:      
+		return OnViewToolBar();
+	case IDM_HELP_ABOUT:        
+		return OnHelp();
+	case IDM_HIDE_SINGLE_TAB:   
+		return OnHideSingleTab();
 
 
 	case IDM_EDIT_COPY:
@@ -200,7 +226,6 @@ BOOL CMainFrame::OnCommand(WPARAM wparam, LPARAM lparam)
 }
 
 BOOL CMainFrame::OnContainerTabsAtTop()
-// Reposition the tabs in the containers
 {
 	SetContainerTabsAtTop(!m_isContainerTabsAtTop);
 	return TRUE;
@@ -208,8 +233,6 @@ BOOL CMainFrame::OnContainerTabsAtTop()
 
 int CMainFrame::OnCreate(CREATESTRUCT& cs)
 {
-
-	// call the base class function
 	return CDockFrame::OnCreate(cs);
 }
 
@@ -225,13 +248,13 @@ void CMainFrame::Stopping()
 	Sleep(100);
 	CD2DView::Stop();
 	Sleep(100);
-
 }
 
 BOOL CMainFrame::OnDockDefault()
 {
 	Stopping();
 	SetRedraw(FALSE);
+	CViewText::TakeSnapShot();
 	CloseAllDockers();
 	LoadDefaultDockers();
 	HideSingleContainerTab(m_hideSingleTab);
@@ -244,6 +267,7 @@ BOOL CMainFrame::OnDockDefault()
 BOOL CMainFrame::OnDockCloseAll()
 {
 	Stopping();
+	CViewText::TakeSnapShot();
 	CloseAllDockers();
 	return TRUE;
 }
@@ -255,12 +279,121 @@ BOOL CMainFrame::OnFileExit()
 	return TRUE;
 }
 
+BOOL CMainFrame::OnFileSave() {
+	CViewText::SaveFile();
+	return TRUE;
+}
+
+BOOL CMainFrame::OnFileSaveAs() {
+ 
+	IFileOpenDialog* pFileSave;
+	HRESULT hr = CoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_ALL,
+		IID_IFileSaveDialog, reinterpret_cast<void**>(&pFileSave));
+ 
+	COMDLG_FILTERSPEC aFileTypes[] = {
+		{ L"Scheme Files", L"*.ss" },
+		{ L"All files", L"*.*" }
+	};
+
+	if (FAILED(hr))
+		return FALSE;
+
+	const auto locate_file = Utility::GetFullPathFor(Utility::widen("scripts").c_str());
+	IShellItem* psiFolder;
+	SHCreateItemFromParsingName(locate_file.c_str(), NULL, IID_PPV_ARGS(&psiFolder));
+ 
+	pFileSave->SetFolder(psiFolder);
+	pFileSave->SetFileTypes(_countof(aFileTypes), aFileTypes);
+	pFileSave->SetTitle(L"Save script");
+	pFileSave->SetOkButtonLabel(L"Save");
+	pFileSave->SetFileName(L"script.ss");
+	pFileSave->SetDefaultExtension(L"ss");
+
+	// Show the dialog.
+	hr = pFileSave->Show(NULL);
+
+	if (SUCCEEDED(hr))
+	{
+		IShellItem* pItem;
+
+		hr = pFileSave->GetResult(&pItem);
+
+		if (SUCCEEDED(hr))
+		{
+			PWSTR pszFilePath;
+			hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+
+			if (SUCCEEDED(hr))
+			{
+				CViewText::SaveFileAs(pszFilePath);
+				CoTaskMemFree(pszFilePath);
+			}
+		}
+	}
+
+	return TRUE;
+}
+
+
+
+BOOL CMainFrame::OnFileNew() {
+	CViewText::NewFile();
+	return TRUE;
+}
+
+
+
+BOOL CMainFrame::OnFileOpen()
+{
+	IFileOpenDialog* pFileOpen;
+	HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL,
+		IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
+
+	if (SUCCEEDED(hr))
+	{
+	
+		COMDLG_FILTERSPEC FileTypes[] = {
+		{ L"Scheme Scripts", L"*.ss" },
+		{ L"All files", L"*.*" }
+		};
+
+		const auto locate_file = Utility::GetFullPathFor(Utility::widen("scripts").c_str());
+		IShellItem* psiFolder, * psiParent;
+		SHCreateItemFromParsingName(locate_file.c_str(), NULL, IID_PPV_ARGS(&psiFolder));
+		psiFolder->GetParent(&psiParent);
+		pFileOpen->SetFolder(psiFolder);
+		pFileOpen->SetFileTypes(_countof(FileTypes), FileTypes);
+
+		hr = pFileOpen->Show(NULL);
+		if (SUCCEEDED(hr))
+		{
+			IShellItem* pItem;
+			hr = pFileOpen->GetResult(&pItem);
+			if (SUCCEEDED(hr))
+			{
+				PWSTR pszFilePath;
+				hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+
+		
+				if (SUCCEEDED(hr))
+				{
+				 
+					CViewText::LoadFile(pszFilePath);
+					CoTaskMemFree(pszFilePath);
+				}
+				pItem->Release();
+			}
+		}
+		pFileOpen->Release();
+	}
+	return TRUE;
+}
+
 BOOL CMainFrame::OnHideSingleTab()
 {
 	HideSingleContainerTab(!m_hideSingleTab);
 	return TRUE;
 }
-
 
 
 BOOL CMainFrame::on_dock_close_all()
@@ -277,6 +410,7 @@ BOOL CMainFrame::on_dock_image()
 {
 	Stopping();
 	SetRedraw(FALSE);
+	CViewText::TakeSnapShot();
 	CloseAllDockers();
 	load_browser_image_dockers();
 	Sleep(100);
@@ -290,6 +424,7 @@ BOOL CMainFrame::on_dock_image_eval()
 {
 	Stopping();
 	SetRedraw(FALSE);
+	CViewText::TakeSnapShot();
 	CloseAllDockers();
 	load_image_dockers();
 	Sleep(100);
@@ -302,6 +437,7 @@ BOOL CMainFrame::on_dock_eval()
 {
 	Stopping();
 	SetRedraw(FALSE);
+	CViewText::TakeSnapShot();
 	CloseAllDockers();
 	LoadEvalDockers();
 	Sleep(100);
@@ -314,6 +450,7 @@ BOOL CMainFrame::OnDockBrowser()
 {
 	Stopping();
 	SetRedraw(FALSE);
+	CViewText::TakeSnapShot();
 	CloseAllDockers();
 	load_browser_dockers();
 	SetRedraw(TRUE);

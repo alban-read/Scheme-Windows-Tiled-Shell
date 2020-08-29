@@ -21,9 +21,13 @@ public:
     static void Eval(HWND hwnd);
     // sc_setEditorFromFile(char* fname)
     static void LoadFile(char* fname);
-
+    static void LoadFile(std::wstring fname);
+    static void NewFile();
+    static void SaveFile();
+    static void SaveFileAs(std::wstring fname);
     static void transcriptln(char* s);
-
+    static void TakeSnapShot();
+    static void RestoreSnapShot();
 
 protected:
     virtual void PreCreate(CREATESTRUCT& cs); 

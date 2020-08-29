@@ -38,6 +38,10 @@ IDW_MAIN MENU
 BEGIN
     POPUP "&File"
     BEGIN
+        MENUITEM "&New",                        IDM_FILE_NEW
+        MENUITEM "&Open",                       IDM_FILE_OPEN
+        MENUITEM "&Save",                       IDM_FILE_SAVE
+        MENUITEM "Save As",                     IDM_FILE_SAVE_AS
         MENUITEM "E&xit",                       IDM_FILE_EXIT
     END
     POPUP "&View"
@@ -141,6 +145,10 @@ END
 
 IDW_MAIN ACCELERATORS
 BEGIN
+    VK_LEFT,        ID_BACK_BROWSER,        VIRTKEY, ALT, NOINVERT
+    VK_HOME,        ID_HOME_BROWSER,        VIRTKEY, ALT, NOINVERT
+    VK_RETURN,      IDM_ACTIONS_EXECUTE,    VIRTKEY, CONTROL, NOINVERT
+    VK_RETURN,      IDM_ACTIONS_EXECUTE_SELECTED, VIRTKEY, SHIFT, NOINVERT
     "C",            IDM_EDIT_COPY,          VIRTKEY, CONTROL, NOINVERT
     "X",            IDM_EDIT_CUT,           VIRTKEY, CONTROL, NOINVERT
     "V",            IDM_EDIT_PASTE,         VIRTKEY, CONTROL, NOINVERT
@@ -150,11 +158,8 @@ BEGIN
     "O",            IDM_FILE_OPEN,          VIRTKEY, CONTROL, NOINVERT
     "P",            IDM_FILE_PRINT,         VIRTKEY, CONTROL, NOINVERT
     "S",            IDM_FILE_SAVE,          VIRTKEY, CONTROL, NOINVERT
-    VK_RETURN,      IDM_ACTIONS_EXECUTE,    VIRTKEY, CONTROL, NOINVERT
-    VK_RETURN,      IDM_ACTIONS_EXECUTE_SELECTED, VIRTKEY, SHIFT, NOINVERT
     "L",            IDM_VIEW_CLEAR,         VIRTKEY, CONTROL, NOINVERT
-    VK_LEFT,        ID_BACK_BROWSER,        VIRTKEY, ALT, NOINVERT
-    VK_HOME,        ID_HOME_BROWSER,        VIRTKEY, ALT, NOINVERT
+    "S",            IDM_FILE_SAVE_AS,       VIRTKEY, ALT, NOINVERT
 END
 
 

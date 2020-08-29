@@ -95,6 +95,10 @@
 #define ID_DOCKING_BROWSERLAYOUT        32777
 #define ID_DOCKING_IMAGE_EVALUATOR      32778
 #define ID_DOCKING_EVALUATOR            32779
+#define ID_FILE_OPEN                    32780
+#define ID_FILE_SAVE                    32781
+#define ID_FILE_NEW                     32782
+#define IDM_FILE_SAVE_AS                32783
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -103,7 +107,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        150
-#define _APS_NEXT_COMMAND_VALUE         32780
+#define _APS_NEXT_COMMAND_VALUE         32786
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           150
 #endif

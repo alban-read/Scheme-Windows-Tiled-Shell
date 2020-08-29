@@ -90,8 +90,8 @@ static void custom_init()
 void abnormal_exit()
 {
 	MessageBox(nullptr,
-		L"Fatal error",
-		L"Sorry to say; the App has died.",
+		L"There was a Fatal error",
+		L"And sorry to say, our program died.",
 		MB_OK | MB_ICONERROR);
 	exit(1);
 }

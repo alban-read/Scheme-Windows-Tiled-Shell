@@ -26,6 +26,10 @@ public:
     BOOL OnDockCloseAll();
     BOOL OnDockDefault();
     BOOL OnFileExit();
+    BOOL OnFileSave();
+    BOOL OnFileSaveAs();
+    BOOL OnFileNew();
+    BOOL OnFileOpen();
     BOOL OnHideSingleTab();
     
  

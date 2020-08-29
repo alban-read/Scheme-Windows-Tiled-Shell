@@ -7,10 +7,11 @@
 #include "ContainerApp.h"
 #include "Output.h"
 #include "Engine.h"
-
+#include <fmt/format.h>
 #include <iostream>
 #include <fstream>
 #include "Utility.h"
+ 
 
 // A few basic colors
 const COLORREF black = RGB(0, 0, 0);
@@ -32,6 +33,15 @@ LRESULT send_editor(HWND h, UINT Msg, WPARAM wParam = 0, LPARAM lParam = 0)
 HWND response;
 HWND transcript;
 HWND inputed;
+ 
+char* snap_shot;
+int snap_shot_len = 0;
+char* response_snap_shot;
+int response_snap_shot_len = 0;
+char* transcript_snap_shot;
+int  transcript_snap_shot_len = 0;
+
+char text_font[512];
 
 
 void sc_setText(HWND h, char* text) {
@@ -87,14 +97,19 @@ static const char g_scheme[] =
 "values vector vector? vector-length vector->list vector-ref vector-set! "
 "while when where write ";
 
-// commands that have been added by this app.
+// 'native' commands that have been added by this app.
 static const char g_scheme2[] =
 "add-clear-image add-draw-rect add-draw-ellipse add-draw-sprite  add-fill-colour add-fill-ellipse "
-"add-fill-rect add-draw-line add-line-colour add-pen-width add-render-sprite add-scaled-rotated-sprite add-write-text "
+"add-fill-linear-ellipse add-fill-linear-rect "
+"add-fill-radial-rect add-fill-radial-ellipse "
+"add-fill-rect add-draw-line add-line-colour add-pen-width add-render-sprite "
+"add-select-linear-brush add-select-radial-brush "
+"add-scaled-rotated-sprite add-write-text "
 "after api-call " 
 "batch-clear-active "
 "batch-draw-ellipse batch-draw-line batch-draw-rect batch-draw-scaled-rotated-sprite "
 "batch-draw-sprite batch-fill-ellipse batch-fill-rect batch-render-sprite batch-render-sprite-scale-rot "
+"batch-write-text "
 "clear-image clear-sprite-command clear-sprite-commands "
 "draw-batch draw-into-sprite draw-ellipse draw-line draw-rect draw-scaled-rotated-sprite draw-sprite " 
 "every eval->string eval->text " 
@@ -105,7 +120,8 @@ static const char g_scheme2[] =
 "keyboard-delay "
 "line-colour linear-gradient load-sound load-sprites make-sprite "
 "pen-width play-sound radial-gradient render render-sprite render-sprite-scale-rot release restart-engine rotate  "
-"safely set-draw-sprite set-every-function show sprite-size stop-every "
+"safely select-linear-brush select-radial-brush "
+"set-draw-sprite set-every-function set-linear-brush set-radial-brush  show sprite-size stop-every "
 "web-message write-text draw-into-sprite ";
 
 static const char g_scheme3[] =
@@ -118,24 +134,26 @@ struct s_scintilla_colors
 	int         iItem;
 	COLORREF    rgb;
 	int			size;
-	char* face;
+	char*		face;
 	bool		bold;
 	bool		italic;
 };
 
+const int fsz = 10;
+
 static s_scintilla_colors scheme[] =
-{	//	item					colour				sz	face		bold	italic
-	{ SCE_C_COMMENT,          RGB(160,82,45),		11, "Consolas",	false, true },
-	{ SCE_C_COMMENTLINE,      RGB(184,138,0),		11, "Consolas",	false, false },
-	{ SCE_C_COMMENTDOC,       RGB(32,178,170),		11, "Consolas",	false, false },
-	{ SCE_C_NUMBER,           RGB(138,43,226),		11, "Consolas",	false, false },
-	{ SCE_C_STRING,           RGB(140,140,140),		11, "Consolas",	false, false },
-	{ SCE_C_CHARACTER,        RGB(100,100,100),		11, "Consolas",	false, false },
-	{ SCE_C_UUID,             cyan,					11, "Consolas",	false, false },
-	{ SCE_C_OPERATOR,         black,				11, "Consolas",	false, false },
-	{ SCE_C_WORD,             RGB(0,138,184),		11, "Consolas",	true,  false },
-	{ SCE_C_WORD2,            RGB(0,138,184),		11, "Consolas",	false,  false },
-	{ SCE_C_REGEX,			  RGB(186,85,211),		11, "Consolas",	false, false },
+{	//	item					colour					sz	face	bold	italic
+	{ SCE_LISP_DEFAULT,         RGB(  10,  10,  10),	fsz, text_font,	false, false },
+	{ SCE_LISP_COMMENT,         RGB(  20,  20, 120),	fsz, text_font,	false, true },
+	{ SCE_LISP_NUMBER,          RGB(  30,  30, 130),	fsz, text_font,	false, false },
+	{ SCE_LISP_KEYWORD,         RGB(  40,  40, 110),	fsz, text_font,	true, false },
+	{ SCE_LISP_KEYWORD_KW,      RGB(  50,  50, 180),	fsz, text_font,	false, false },
+	{ SCE_LISP_SYMBOL,          RGB(  60,  60, 110),	fsz, text_font,	false, false },
+	{ SCE_LISP_STRING,          RGB(  70,  80, 110),	fsz, text_font,	false, false },
+	{ SCE_LISP_STRINGEOL,       RGB(  80,  80, 110),	fsz, text_font,	false, false },
+	{ SCE_LISP_IDENTIFIER,      RGB(  25,  20, 110),	fsz, text_font,	false, false },
+	{ SCE_LISP_OPERATOR,		RGB(  90,  90, 110),	fsz, text_font,	false, false },
+	{ SCE_LISP_SPECIAL,		    RGB(  95,  90, 115),	fsz, text_font,	false, false },
 	{ -1,                     0 }
 };
 
@@ -184,14 +202,13 @@ void initialize_editor(HWND h) {
 	send_editor(h, SCI_SETLEXER, SCLEX_LISP);
 
 	// Set tab width
-	send_editor(h, SCI_SETTABWIDTH, 4);
+	send_editor(h, SCI_SETTABWIDTH, 2);
 
 	// line wrap (avoid h scroll bars)
 	send_editor(h, SCI_SETWRAPMODE, 1);
 	send_editor(h, SCI_SETWRAPVISUALFLAGS, 2);
 	send_editor(h, SCI_SETWRAPSTARTINDENT, 6);
 
-	send_editor(h, SCI_SETTABWIDTH, 2);
 
 	// auto sel
 	send_editor(h, SCI_AUTOCSETSEPARATOR, ',');
@@ -199,7 +216,7 @@ void initialize_editor(HWND h) {
 
 	// dwell/ used for brackets
 	send_editor(h, SCI_SETMOUSEDWELLTIME, 500);
-	set_a_style(h, STYLE_DEFAULT, gray, RGB(0xFF, 0xFF, 0xEA), 11, "Consolas");
+	set_a_style(h, STYLE_DEFAULT, blue, RGB(0xFF, 0xFF, 0xEA), fsz+1, text_font);
 
 	// Set caret foreground color
 	send_editor(h, SCI_SETCARETFORE, RGB(0, 0, 255));
@@ -219,8 +236,8 @@ void initialize_editor(HWND h) {
 			scheme[i].bold,
 			scheme[i].italic);
 
-	set_a_style(h, STYLE_BRACELIGHT, orange, RGB(0xFF, 0xFF, 0xEA), 11, "Consolas");
-	set_a_style(h, STYLE_BRACEBAD, red, RGB(0xFF, 0xFF, 0xEA), 11, "Consolas");
+	set_a_style(h, STYLE_BRACELIGHT, blue, RGB(0xFF, 0xFF, 0xEA), fsz+1, text_font);
+	set_a_style(h, STYLE_BRACEBAD, red, RGB(0xFF, 0xFF, 0xEA), fsz + 1, text_font);
 
 
 	send_editor(h, SCI_SETKEYWORDS, 0, reinterpret_cast<LPARAM>(g_scheme));
@@ -258,7 +275,7 @@ void initialize_response_editor(HWND h) {
 
 	// dwell/ used for brackets
 	send_editor(h, SCI_SETMOUSEDWELLTIME, 500);
-	set_a_style(h, STYLE_DEFAULT, gray, RGB(0xFF, 0xFF, 0xEA), 11, "Consolas");
+	set_a_style(h, STYLE_DEFAULT, gray, RGB(0xFF, 0xFF, 0xEA), fsz + 1, text_font);
 
 	// Set caret foreground color
 	send_editor(h, SCI_SETCARETFORE, RGB(0, 0, 255));
@@ -278,8 +295,8 @@ void initialize_response_editor(HWND h) {
 			scheme[i].bold,
 			scheme[i].italic);
 
-	set_a_style(h, STYLE_BRACELIGHT, orange, RGB(0xFF, 0xFF, 0xEA), 11, "Consolas");
-	set_a_style(h, STYLE_BRACEBAD, red, RGB(0xFF, 0xFF, 0xEA), 11, "Consolas");
+	set_a_style(h, STYLE_BRACELIGHT, orange, RGB(0xFF, 0xFF, 0xEA), fsz, text_font);
+	set_a_style(h, STYLE_BRACEBAD, red, RGB(0xFF, 0xFF, 0xEA), fsz, text_font);
 
 
 	send_editor(h, SCI_SETKEYWORDS, 0, reinterpret_cast<LPARAM>(g_scheme));
@@ -314,7 +331,7 @@ void initialize_transcript_editor(HWND h) {
 
 	// dwell
 	send_editor(h, SCI_SETMOUSEDWELLTIME, 500);
-	set_a_style(h, STYLE_DEFAULT, gray, RGB(0xFF, 0xFF, 0xEA), 10, "Consolas");
+	set_a_style(h, STYLE_DEFAULT, gray, RGB(0xFF, 0xFF, 0xEA), fsz, text_font);
 
 	// Set caret foreground color
 	send_editor(h, SCI_SETCARETFORE, RGB(0, 0, 255));
@@ -324,8 +341,6 @@ void initialize_transcript_editor(HWND h) {
 
 	// Set all styles
 	send_editor(h, SCI_STYLECLEARALL);
- 
-
 }
 
 static bool is_brace(const int c)
@@ -386,9 +401,6 @@ void scintillate(SCNotification* N, LPARAM lParam) {
 }
 
 
-
-// Transcript etc
-
 void eval_scite(HWND hc)
 {
 	const auto l = send_editor(hc, SCI_GETLENGTH) + 1;
@@ -425,7 +437,6 @@ void eval_selected_scite(HWND hc)
 	}
 }
 
-
 char* sc_getText(HWND hc) {
 	const auto l = send_editor(hc, SCI_GETLENGTH) + 1;
 	auto cmd = new(std::nothrow) char[l];
@@ -437,7 +448,6 @@ char* sc_getText(HWND hc) {
 const char* sc_getExprText() {
 	return sc_getText(inputed);
 }
-
 
 void sc_appendText(HWND h, char* text) {
 	const int l = strlen(text);
@@ -458,8 +468,6 @@ void sc_setEditorFromFile(char* fname) {
 	sc_setTextFromFile(inputed, fname);
 }
 
-
-// called from scheme
 void set_inputed(char* s)
 {
 	sc_setText(inputed, s);
@@ -496,7 +504,6 @@ void appendTranscriptNL(char* s)
 		sc_appendText(transcript, "\r\n");
 	}
 }
-
 
 // called from scheme engine.
 void appendTranscript1(char* s)
@@ -556,10 +563,84 @@ int CViewText::OnCreate(CREATESTRUCT&)
 	return 0;
 }
 
+// code fonts
+bool hack_available = false;
+bool consolas_available = false;
+bool DejaVu_Sans_Mono_available = false;
+bool Droid_Sans_Mono_available = false;
+bool font_3270_available = false;
+
+
+int CALLBACK EnumFontFamExProc(
+	ENUMLOGFONTEX* lpelfe,
+	NEWTEXTMETRICEX* lpntme,
+	DWORD FontType,
+	LPARAM lParam
+)
+{
+	std::wstring font_face(lpelfe->elfFullName);
+
+	if (font_face.find(L"Hack") != std::string::npos)
+		hack_available = true;
+
+	if (font_face.find(L"DejaVu Sans Mono") != std::string::npos)
+		DejaVu_Sans_Mono_available = true;
+
+	if (font_face.find(L"Droid Sans Mono") != std::string::npos)
+		Droid_Sans_Mono_available = true;
+
+	if (font_face.find(L"Consolas") != std::string::npos)
+		consolas_available = true;
+
+	if (font_face.find(L"3270") != std::string::npos)
+		font_3270_available = true;
+
+	return 1;
+}
+
+void test_for_code_fonts() {
+	LOGFONT lf;
+	lf.lfFaceName[0] = '\0';
+	lf.lfCharSet = DEFAULT_CHARSET;
+	HDC hDC = GetDC(NULL);
+	EnumFontFamiliesEx(hDC, &lf, (FONTENUMPROC)&EnumFontFamExProc, 0, 0);
+	ReleaseDC(NULL, hDC);
+}
+
+
+int select_code_font() {
+
+	test_for_code_fonts();
+
+	if (hack_available==true) {
+		strncpy(text_font, "Hack", 5);
+		return 0;
+	}
+	if (DejaVu_Sans_Mono_available==true) {
+		strncpy(text_font, "DejaVu Sans Mono", 17);
+		return 1;
+	}
+	if (Droid_Sans_Mono_available==true) {
+		strncpy(text_font, "Droid Sans Mono", 16);
+		return 2;
+	}
+	if (font_3270_available == true) {
+		strncpy(text_font, "ibm3270", 8);
+		return 3;
+	}
+
+	strncpy(text_font, "Consolas", 9);
+	return 4;
+}
+
 void CViewText::OnInitialUpdate()
 {
 	HWND h = this->GetHwnd();
+	select_code_font();
 	initialize_editor(h);
+	if (snap_shot == nullptr) return;
+	send_editor(h, SCI_SETTEXT, snap_shot_len, reinterpret_cast<LPARAM>(snap_shot));
+	snap_shot_len = 0;
 }
 
 
@@ -579,7 +660,6 @@ LRESULT CViewText::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return WndProcDefault(uMsg, wParam, lParam);
 }
 
-
 LRESULT CViewText::on_drop_files(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	return 0L;
@@ -590,7 +670,6 @@ void CViewText::Start()
 	add_transcript_commands();
 }
 
- 
 void CViewText::EvalSelected(HWND hwnd)
 {
 	if (hwnd == inputed || hwnd == transcript || hwnd == response) {
@@ -604,23 +683,157 @@ void CViewText::Eval(HWND hwnd)
 	eval_scite(hwnd);
 }
 
+
+std::wstring loaded_file_name(L"");
+
 void CViewText::LoadFile(char* fname)
 {
 	sc_setEditorFromFile(fname);
 }
 
+void CViewText::LoadFile(std::wstring fname)
+{
+	loaded_file_name = fname;
+	std::ifstream f(loaded_file_name);
+	std::stringstream buffer;
+	buffer << f.rdbuf();
+	buffer.seekg(0, std::ios::end);
+	const int size = buffer.tellg();
+	send_editor(inputed, SCI_SETTEXT, size, reinterpret_cast<LPARAM>(buffer.str().c_str()));
+}
+
+void CViewText::NewFile()
+{
+	loaded_file_name = L"";
+	ClearAll(inputed);
+}
+
+void CViewText::SaveFile() {
+
+	if (loaded_file_name.empty()) {
+		return;
+	}
+
+	const auto l = send_editor(inputed, SCI_GETLENGTH) + 1;
+
+	if (l == 0) {
+		return;
+	}
+
+	auto* text_data = new(std::nothrow) char[l];
+	if (text_data == nullptr) {
+		return;
+	}
+	memset(text_data, 0, l);
+	send_editor(inputed, SCI_GETTEXT, l, reinterpret_cast<LPARAM>(text_data));
+	DWORD bytesWritten;
+
+	HANDLE hFile;
+	hFile = CreateFile(loaded_file_name.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	WriteFile(hFile, text_data, l, &bytesWritten, NULL);
+	Sleep(100);
+	CloseHandle(hFile);
+	delete[] text_data;
+ 
+	HWND h = Utility::get_main();
+	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)loaded_file_name.c_str());
+}
+
+void CViewText::SaveFileAs(std::wstring fname)
+{
+	loaded_file_name = fname;
+	const auto l = send_editor(inputed, SCI_GETLENGTH) + 1;
+
+	if (l == 0) {
+		return;
+	}
+
+	auto* text_data = new(std::nothrow) char[l];
+	if (text_data == nullptr) {
+		return;
+	}
+	memset(text_data, 0, l);
+	send_editor(inputed, SCI_GETTEXT, l, reinterpret_cast<LPARAM>(text_data));
+	DWORD bytesWritten;
+
+	HANDLE hFile;
+	hFile = CreateFile(loaded_file_name.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+	WriteFile(hFile, text_data, l, &bytesWritten, NULL);
+	Sleep(100);
+	CloseHandle(hFile);
+
+	delete[] text_data;
+
+	HWND h = Utility::get_main();
+	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)loaded_file_name.c_str());
+}
+
+
 void CViewText::transcriptln(char* s)
 {
 	appendTranscriptNL(s);
 }
+
+
+
+void CViewText::TakeSnapShot()
+{
+
+	snap_shot_len = send_editor(inputed, SCI_GETLENGTH) + 1;
+	if (snap_shot_len == 0) {
+		return;
+	}
+ 
+	if (snap_shot != nullptr) delete[] snap_shot;
+
+	snap_shot = new(std::nothrow) char[snap_shot_len];
+	if (snap_shot == nullptr) {
+		return;
+	}
+	memset(snap_shot, 0, snap_shot_len);
+	send_editor(inputed, SCI_GETTEXT, snap_shot_len, reinterpret_cast<LPARAM>(snap_shot));
+	 
+	response_snap_shot_len = send_editor(response, SCI_GETLENGTH) + 1;
+	if (response_snap_shot_len == 0) {
+		return;
+	}
+ 
+	if (response_snap_shot != nullptr) delete[] response_snap_shot;
+
+	response_snap_shot = new(std::nothrow) char[response_snap_shot_len];
+	if (response_snap_shot == nullptr) {
+		return;
+	}
+	memset(response_snap_shot, 0, response_snap_shot_len);
+	send_editor(response, SCI_GETTEXT, response_snap_shot_len, reinterpret_cast<LPARAM>(response_snap_shot));
+
+
+	transcript_snap_shot_len = send_editor(transcript, SCI_GETLENGTH) + 1;
+	if (transcript_snap_shot_len == 0) {
+		return;
+	}
+	if (transcript_snap_shot != nullptr) delete[] transcript_snap_shot;
+
+	transcript_snap_shot = new(std::nothrow) char[transcript_snap_shot_len];
+	if (transcript_snap_shot == nullptr) {
+		return;
+	}
+	memset(transcript_snap_shot, 0, transcript_snap_shot_len);
+	send_editor(transcript, SCI_GETTEXT, transcript_snap_shot_len, reinterpret_cast<LPARAM>(transcript_snap_shot));
+
+
+}
+
+void CViewText::RestoreSnapShot()
+{
+
+ 
+}
  
 CDockText::CDockText()
 {
-	// Set the view window to our edit control
 	SetView(m_View);
-
-	// Set the width of the splitter bar
-	SetBarWidth(8);
+	SetBarWidth(3);
 }
 
 void CViewResponseText::PreCreate(CREATESTRUCT& cs)
@@ -630,9 +843,11 @@ void CViewResponseText::PreCreate(CREATESTRUCT& cs)
 
 void CViewResponseText::OnInitialUpdate()
 {
-
 	const auto h = this->GetHwnd();
 	initialize_response_editor(h);
+	if (response_snap_shot == nullptr) return;
+	send_editor(h, SCI_SETTEXT, response_snap_shot_len, reinterpret_cast<LPARAM>(response_snap_shot));
+	response_snap_shot_len = 0;
 }
 
 void CViewTranscriptText::PreCreate(CREATESTRUCT& cs)
@@ -644,6 +859,9 @@ void CViewTranscriptText::OnInitialUpdate()
 {
 	const auto h = this->GetHwnd();
 	initialize_transcript_editor(h);
+	if (transcript_snap_shot == nullptr) return;
+	send_editor(h, SCI_SETTEXT, transcript_snap_shot_len, reinterpret_cast<LPARAM>(transcript_snap_shot));
+	transcript_snap_shot_len = 0;
 }
 
  
@@ -673,16 +891,14 @@ CContainTranscriptText::CContainTranscriptText()
 	SetView(m_ViewTranscriptText);
 }
 
- 
 
- 
 CDockResponseText::CDockResponseText()
 {
 	// Set the view window to our edit control
 	CDocker::SetView(m_View);
 
 	// Set the width of the splitter bar
-	SetBarWidth(4);
+	SetBarWidth(3);
 }
  
 CDockTranscriptText::CDockTranscriptText()
@@ -691,7 +907,7 @@ CDockTranscriptText::CDockTranscriptText()
 	CDocker::SetView(m_View);
 
 	// Set the width of the splitter bar
-	SetBarWidth(4);
+	SetBarWidth(3);
 }
 
 
