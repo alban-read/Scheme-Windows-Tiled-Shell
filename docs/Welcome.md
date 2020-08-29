@@ -2,9 +2,7 @@
 
 *Navigate **back** = **alt-left-arrow*** 
 
-### Latest Documentation
-
-[Online Documentation](https://github.com/alban-read/Scheme-Windows-Tiled-Shell/wiki)
+[Documentation Wiki](https://github.com/alban-read/Scheme-Windows-Tiled-Shell/wiki)
 
 ##### Chez Scheme Language Topics
 
@@ -13,18 +11,13 @@
 
 ------
 
+**Very Quick Start**
 
+Enter Scheme in the Evaluator pane.
 
-#### Offline local documentation
+Press control-return to evaluate scheme; shift-return to evaluate only selected text.
 
-##### Application Topics
+Press Escape to stop.
 
-| [The workspace](gui.html)                                    |                         |                                       |
-| ------------------------------------------------------------ | ----------------------- | ------------------------------------- |
-| [Browser Pane](browser.html)                                 | [Keys](keys.html)       | [Graphics ](graphics.html)            |
-| [Animation](Animation.html)                                  | [License](license.html) | [Implementation](implementation.html) |
-| [Release Notes](https://github.com/alban-read/Scheme-Windows-Tiled-Shell/wiki) |                         |                                       |
+Any function results go to the results pane;  the print functions print in the transcript pane; graphics commands display in the image pane; see the online documentation above for all of the details.
 
-----
-
- 
