@@ -82,6 +82,10 @@
 (define transcript0
   (lambda (x)
     ((foreign-procedure "append_transcript" (string) void) x)))
+	
+(define transcriptln
+  (lambda (x)
+    ((foreign-procedure "append_transcript_ln" (string) void) x)))
 
 (define get-input-ed
   (lambda () ((foreign-procedure "getInputed" () ptr))))
@@ -145,6 +149,11 @@
   (lambda (x)
     (transcript0
       (with-output-to-string (lambda () (display-port x))))))
+	  
+(define display-transcriptln
+  (lambda (x)
+    (transcriptln
+      (with-output-to-string (lambda () (display-port x))))))
 
 (define newline-transcript (lambda () (display-transcript #\newline)))
 
@@ -155,6 +164,13 @@
 		 (transcript0
 			(with-output-to-string (lambda () (apropos-print x))))))
 	
+(define displayln
+  (case-lambda
+    [(x p)
+     (unless (and (output-port? p) (textual-port? p))
+       (errorf 'display "~s is not a textual output port" p))
+     (display-port x p)]
+    [(x) (display-transcriptln x)]))
 
 (define display
   (case-lambda
@@ -176,11 +192,10 @@
 
 (define blank
   (lambda ()
-    ((foreign-procedure "clear_transcript" () void))))
+    ((foreign-procedure "cleartranscript" () ptr))))
 
 (define (println . args)
-  (apply transcript0 args)
-  (transcript0 "\r\n"))
+  (apply transcriptln args))
 
 (define evalrespond
   (lambda (x)
