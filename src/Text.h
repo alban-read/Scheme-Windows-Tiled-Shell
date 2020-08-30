@@ -19,7 +19,6 @@ public:
     static void Start();
     static void EvalSelected(HWND hwnd);
     static void Eval(HWND hwnd);
-    // sc_setEditorFromFile(char* fname)
     static void LoadFile(char* fname);
     static void LoadFile(std::wstring fname);
     static void NewFile();

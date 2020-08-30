@@ -134,14 +134,14 @@ DWORD WINAPI execstartup(LPVOID cmd)
 		Sforeign_symbol("after", static_cast<ptr>(after));
 
 		// load scripts
-		load_script_ifexists("\\scripts\\base.ss");
-		load_script_ifexists("\\scripts\\init.ss");
-		load_script_ifexists("\\scripts\\env.ss");
+		load_script_ifexists("\\scripts\\base.scm");
+		load_script_ifexists("\\scripts\\init.scm");
+		load_script_ifexists("\\scripts\\env.scm");
 
 		CALL1("suppress-greeting", Strue);
 		CALL1("waiter-prompt-string", Sstring(""));
-		load_script_ifexists("\\scripts\\browser.ss");
-		load_script_ifexists("\\scripts\\appstart.ss");
+		load_script_ifexists("\\scripts\\browser.scm");
+		load_script_ifexists("\\scripts\\appstart.scm");
 
 	}
 	catch (const CException& e)
@@ -154,7 +154,7 @@ DWORD WINAPI execstartup(LPVOID cmd)
 // runs on initial update
 void post_gui_load_script()
 {
-	load_script_ifexists("\\scripts\\initialupdate.ss");
+	load_script_ifexists("\\scripts\\initialupdate.scm");
 }
 
 

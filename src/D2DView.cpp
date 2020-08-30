@@ -492,7 +492,7 @@ void swap_buffers(int n) {
 
 	ID2D1Bitmap* temp;
 	d2d_CreateOffscreenBitmap();
-	if (n == 1) {
+	if (n == 1 || n == 3) {
 		BitmapRenderTarget2->BeginDraw();
 		BitmapRenderTarget2->DrawBitmap(bitmap, D2D1::RectF(0.0f, 0.0f, prefer_width, prefer_height));
 		BitmapRenderTarget2->EndDraw();
@@ -1049,7 +1049,6 @@ void d2d_make_default_stroke() {
 	);
 }
 
-
 // direct write
 IDWriteFactory* pDWriteFactory;
 IDWriteTextFormat* TextFont;
@@ -1430,14 +1429,10 @@ HRESULT Create_D2D_Device_Dep(HWND h)
 
 		if (pRenderTarget == NULL)
 		{
-
 			CreateFactory();
-
 			RECT rc;
 			GetClientRect(h, &rc);
-
 			D2D1_SIZE_U size = D2D1::SizeU(rc.right, rc.bottom);
-
 			HRESULT hr = pD2DFactory->CreateHwndRenderTarget(
 				D2D1::RenderTargetProperties(),
 				D2D1::HwndRenderTargetProperties(h,
@@ -1450,6 +1445,11 @@ HRESULT Create_D2D_Device_Dep(HWND h)
 			}
 
 			d2d_CreateGridPatternBrush(pRenderTarget, &pPatternBrush);
+
+			d2d_line_brush(0, 0.0, 0.0, 0.0, 0.0);
+			pColourBrush = lineBrushes[0];
+			d2d_fill_brush(0, 0.0, 1.0, 0.0, 1.0);
+			pfillColourBrush = fillBrushes[0];
 
 			hr = pDWriteFactory->CreateTextFormat(
 				L"Consolas",
@@ -1471,8 +1471,7 @@ HRESULT Create_D2D_Device_Dep(HWND h)
 				D2D1::ColorF(D2D1::ColorF::Black),
 				&pBlackBrush
 			);
-			CheckFillBrush();
-			CheckLineBrush();
+ 
 
 			if (FAILED(hr)) {
 	
@@ -2289,6 +2288,7 @@ ptr d2d_image_size(int w, int h)
 	while (pRenderTarget == nullptr) {
 		Sleep(10);
 	}
+
 	d2d_fill_rectangle(0.0, 0.0, 1.0 * w, 1.0 * h);
 	return Strue;
 }
@@ -2423,7 +2423,8 @@ void CD2DView::Step(ptr n)
 
 void CD2DView::Swap(int n)
 {
-	if( n==2) render_sprite_commands();
+	if(n==2) render_sprite_commands();
+	if(n == 3) render_sprite_commands();
 	swap_buffers(n);
 }
 
@@ -2659,6 +2660,7 @@ void add_d2d_commands() {
 	Sforeign_symbol("add_linear_gradient_fill_ellipse",		static_cast<ptr>(add_linear_gradient_fill_ellipse));
 	Sforeign_symbol("add_radial_gradient_fill_ellipse",		static_cast<ptr>(add_radial_gradient_fill_ellipse));
 	Sforeign_symbol("add_draw_rect",						static_cast<ptr>(add_draw_rect));
+	Sforeign_symbol("add_draw_line",						static_cast<ptr>(add_line));
 	Sforeign_symbol("add_fill_rect",						static_cast<ptr>(add_fill_rect));
 	Sforeign_symbol("add_linear_gradient_fill_rect",		static_cast<ptr>(add_linear_gradient_fill_rect));
 	Sforeign_symbol("add_radial_gradient_fill_rect",		static_cast<ptr>(add_radial_gradient_fill_rect));

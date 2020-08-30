@@ -110,7 +110,7 @@ static const char g_scheme2[] =
 "batch-draw-ellipse batch-draw-line batch-draw-rect batch-draw-scaled-rotated-sprite "
 "batch-draw-sprite batch-fill-ellipse batch-fill-rect batch-render-sprite batch-render-sprite-scale-rot "
 "batch-write-text "
-"clear-image clear-sprite-command clear-sprite-commands "
+"clear-image clear-transcript clear-sprite-command clear-sprite-commands "
 "draw-batch draw-into-sprite draw-ellipse draw-line draw-rect draw-scaled-rotated-sprite draw-sprite " 
 "every eval->string eval->text " 
 "font fill-colour fill-ellipse fill-linear-ellipse fill-linear-rect "
@@ -198,6 +198,9 @@ void initialize_editor(HWND h) {
 
 	inputed = h;
 
+	send_editor(h, SCI_SETBUFFEREDDRAW, 0);
+	send_editor(h, SC_TECHNOLOGY_DIRECTWRITERETAIN, 1);
+
 	send_editor(h, SCI_SETCODEPAGE, SC_CP_UTF8);
 	send_editor(h, SCI_SETLEXER, SCLEX_LISP);
 
@@ -262,7 +265,7 @@ void initialize_response_editor(HWND h) {
 	send_editor(h, SCI_SETLEXER, SCLEX_LISP);
 
 	// Set tab width
-	send_editor(h, SCI_SETTABWIDTH, 4);
+	send_editor(h, SCI_SETTABWIDTH, 2);
 
 	// line wrap (avoid h scroll bars)
 	send_editor(h, SCI_SETWRAPMODE, 1);
@@ -316,9 +319,12 @@ void initialize_transcript_editor(HWND h) {
 
 	transcript = h;
 
+	send_editor(h, SCI_SETBUFFEREDDRAW, 0);
+	send_editor(h, SC_TECHNOLOGY_DIRECTWRITERETAIN, 1);
+
 	send_editor(h, SCI_SETCODEPAGE, SC_CP_UTF8);
 	// Set tab width
-	send_editor(h, SCI_SETTABWIDTH, 4);
+	send_editor(h, SCI_SETTABWIDTH, 2);
 
 	// line wrap (avoid h scroll bars)
 	send_editor(h, SCI_SETWRAPMODE, 1);
@@ -509,9 +515,18 @@ void appendTranscriptNL(char* s)
 void appendTranscript1(char* s)
 {
 	if (transcript != nullptr) {
-		sc_appendText(transcript, s);
+		const int l = strlen(s);
+		send_editor(transcript, SCI_APPENDTEXT, l, reinterpret_cast<LPARAM>(s));
 	}
 }
+
+void appendTranscriptln(char* s)
+{
+	std::string text(s);
+	text += "\r\n";
+	send_editor(transcript, SCI_APPENDTEXT, text.length(), reinterpret_cast<LPARAM>(text.c_str()));
+}
+
 
 void appendTranscript2(char* s, char* s1)
 {
@@ -529,10 +544,20 @@ void clear_transcript()
 		send_editor(transcript, SCI_CLEARALL);
 	}
 }
+
+
+ptr cleartranscript() {
+	if (transcript != nullptr) {
+		send_editor(transcript, SCI_CLEARALL);
+	}
+	return Strue;
+}
  
 void add_transcript_commands() {
 	Sforeign_symbol("eval_respond", static_cast<void*>(appendEditor));
 	Sforeign_symbol("append_transcript", static_cast<void*>(appendTranscript1));
+	Sforeign_symbol("append_transcript_ln", static_cast<void*>(appendTranscriptln));
+	Sforeign_symbol("cleartranscript", static_cast<void*>(cleartranscript));
 	Sforeign_symbol("setInputed", static_cast<void*>(set_inputed));
 	Sforeign_symbol("getInputed", static_cast<ptr>(get_inputed));
 }
