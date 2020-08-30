@@ -5,7 +5,7 @@ Provides a tiled user interface for Chez Scheme on Windows 10.
 
 Selfie
 
-[Selfie](docs/selfie.png) 
+[Selfie](https://github.com/alban-read/Scheme-Windows-Tiled-Shell/blob/master/docs/selfie.PNG) 
 
 Programming is fun in a fast interactive workspace.
 
