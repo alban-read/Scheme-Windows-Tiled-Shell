@@ -1,16 +1,16 @@
 # Scheme-Windows-Tiled-Shell
-Tiled Scheme Shell for Windows 10; with Direct 2D and WebView2
 
-Provides a tiled user interface for Chez Scheme on Windows 10.
+A Tiled Scheme Shell for Windows 10; with Direct 2D and WebView2
+
+Provides a simple tiled user interface for Chez Scheme on Windows 10.
 
 Selfie
 
 <img src='https://github.com/alban-read/Scheme-Windows-Tiled-Shell/blob/master/docs/selfie.PNG'> 
 
-Programming is fun in a fast interactive workspace.
+Programming can be fun again in a fast interactive workspace.
 
 Create animations using direct 2D accelerated graphics.
-
 
 
 ----
