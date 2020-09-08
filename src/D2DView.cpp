@@ -15,7 +15,7 @@
 #include <wil/com.h>
 #include <deque>
  
- 
+using namespace Microsoft::WRL;
 
 #define CALL0(who) Scall0(Stop_level_value(Sstring_to_symbol(who)))
 #define CALL1(who, arg) Scall1(Stop_level_value(Sstring_to_symbol(who)), arg)
@@ -98,6 +98,8 @@ float line_r = 0.0f;
 float line_g = 0.0f;
 float line_b = 0.0f;
 float line_a = 0.0f;
+
+ptr d2d_image_size(int w, int h);
 
 #pragma warning(disable : 4996)
 
@@ -542,6 +544,9 @@ ptr d2d_save(char* filename) {
 void render_sprite_commands();
 ptr d2d_show(int n)
 {
+	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
+		d2d_image_size((int)prefer_width, (int)prefer_height);
+	}
 	if (n == 2) render_sprite_commands();  
 	swap_buffers(n);
 	if (main_window != nullptr)
@@ -702,7 +707,7 @@ ptr d2d_zfill_rectangle(float x, float y, float w, float h) {
 
 ptr d2d_fill_rectangle(float x, float y, float w, float h) {
 
-	if (pRenderTarget == nullptr
+	if (pRenderTarget == nullptr || main_window==nullptr
 		|| ActiveRenderTarget == nullptr
 		|| pfillColourBrush == nullptr) {
 		return Sfalse;
@@ -998,8 +1003,7 @@ int d2d_CreateGridPatternBrush(
 			&pGridBrush
 		);
 
-		// create offscreen bitmap
-		d2d_CreateOffscreenBitmap();
+
 
 		if (SUCCEEDED(hr))
 		{
@@ -1445,6 +1449,9 @@ HRESULT Create_D2D_Device_Dep(HWND h)
 			}
 
 			d2d_CreateGridPatternBrush(pRenderTarget, &pPatternBrush);
+			
+			// create offscreen bitmap
+			d2d_CreateOffscreenBitmap();
 
 			d2d_line_brush(0, 0.0, 0.0, 0.0, 0.0);
 			pColourBrush = lineBrushes[0];
@@ -1498,8 +1505,7 @@ void safe_release() {
 	SafeRelease(&BitmapRenderTarget2);
 	SafeRelease(&bitmap);
 	SafeRelease(&bitmap2);
-	
-
+ 
 	for (int i = 0; i < brush_size - 1; i++ ) {
 		SafeRelease(&linearBrushes[i]);
 		SafeRelease(&radialBrushes[i]);
@@ -2020,6 +2026,7 @@ ptr add_scaled_rotated_sprite(int n, float x, float y, float a, float s) {
 	ReleaseMutex(g_sprite_commands_mutex);
 	return Strue;
 }
+ 
 
 ptr add_render_sprite_sheet(int n, 
 	float dx, float dy, float dw, float dh,
@@ -2098,12 +2105,15 @@ void do_render_sprite_sheet(int n, float dx, float dy, float dw, float dh,
 		sx, sy, sw, sh, scale);
 }
 
+
 void render_sprite_commands() {
 	 
 	if (pRenderTarget == nullptr || ActiveRenderTarget == nullptr) {
-		return;
+		d2d_image_size((int)prefer_width, (int)prefer_height);
 	}
 	WaitForSingleObject(g_sprite_commands_mutex, INFINITE);
+	d2d_CreateOffscreenBitmap();
+
 	ActiveRenderTarget->BeginDraw();
 
 	for (int i = 1; i < commands_length+1; i++) {
@@ -2281,6 +2291,7 @@ void render_sprite_commands() {
 
 ptr d2d_image_size(int w, int h)
 {
+
 	prefer_width = w;
 	prefer_height = h;
 	safe_release();
@@ -2288,8 +2299,8 @@ ptr d2d_image_size(int w, int h)
 	while (pRenderTarget == nullptr) {
 		Sleep(10);
 	}
-
-	d2d_fill_rectangle(0.0, 0.0, 1.0 * w, 1.0 * h);
+	d2d_clear(0.0, 0.0, 0.0, 1.0);
+	//d2d_fill_rectangle(0.0, 0.0, 1.0 * w, 1.0 * h);
 	return Strue;
 }
 
@@ -2315,8 +2326,8 @@ void onPaint(HWND hWnd) {
 	RECT rc;
 	::GetClientRect(hWnd, &rc);
 	D2D1_SIZE_U size = D2D1::SizeU(rc.right, rc.bottom);
-	HRESULT
-	hr = Create_D2D_Device_Dep(hWnd);
+	//
+	HRESULT hr = Create_D2D_Device_Dep(hWnd);
 	if (SUCCEEDED(hr))
 	{
 		pRenderTarget->Resize(size);
@@ -2354,6 +2365,7 @@ void onPaint(HWND hWnd) {
 
 void step(ptr lpParam) {
 
+	if (!IsWindow(main_window)) return;
 	WaitForSingleObject(g_image_rotation_mutex, INFINITE);
 	if (Sprocedurep(lpParam)) {
 		Scall0(lpParam);
@@ -2417,13 +2429,12 @@ void CD2DView::Stop()
 void scan_keys();
 void CD2DView::Step(ptr n)
 {
-	scan_keys();
 	step(n);
 }
 
 void CD2DView::Swap(int n)
 {
-	if(n==2) render_sprite_commands();
+	if(n == 2) render_sprite_commands();
 	if(n == 3) render_sprite_commands();
 	swap_buffers(n);
 }
@@ -2444,7 +2455,6 @@ void CD2DView::PreRegisterClass(WNDCLASS& wc)
 int CD2DView::OnCreate(CREATESTRUCT& cs)
 {
     UNREFERENCED_PARAMETER(cs);
-
     // Set the window's icon
     SetIconSmall(IDW_MAIN);
     SetIconLarge(IDW_MAIN);
@@ -2453,6 +2463,7 @@ int CD2DView::OnCreate(CREATESTRUCT& cs)
 
 void CD2DView::OnDestroy()
 {
+	main_window = nullptr;
 	safe_release();
 }
 
@@ -2470,7 +2481,6 @@ LRESULT CD2DView::OnSize(UINT, WPARAM, LPARAM lparam)
     UINT width = LOWORD(lparam);
     UINT height = HIWORD(lparam);
     OnResize(width, height);
-
     return 0;
 }
 
@@ -2535,7 +2545,6 @@ void scan_keys() {
 }
 
 ptr graphics_keys(void) {
-
 	ptr a = Snil;
 	a = cons_sbool("left", graphics_keypressed.left, a);
 	a = cons_sbool("right", graphics_keypressed.right, a);
@@ -2545,7 +2554,6 @@ ptr graphics_keys(void) {
 	a = cons_sbool("space", graphics_keypressed.space, a);
 	a = cons_sfixnum("key", graphics_keypressed.key_code, a);
 	a = cons_sfixnum("recent", GetTickCount() - graphics_keypressed.when, a);
-
 	graphics_keypressed.ctrl = false;
 	graphics_keypressed.left = false;
 	graphics_keypressed.right = false;
@@ -2554,7 +2562,6 @@ ptr graphics_keys(void) {
 	graphics_keypressed.space = false;
 	graphics_keypressed.key_code = 0;
 	graphics_keypressed.when = GetTickCount();
-
 	return a;
 }
 
@@ -2574,7 +2581,8 @@ LRESULT CD2DView::WndProc(UINT msg, WPARAM wparam, LPARAM lparam)
 
     case WM_DISPLAYCHANGE: 
 		return OnDisplayChange(msg, wparam, lparam);
-    case WM_SIZE:           return OnSize(msg, wparam, lparam);
+    case WM_SIZE:          
+		return OnSize(msg, wparam, lparam);
     }
 
     return WndProcDefault(msg, wparam, lparam);

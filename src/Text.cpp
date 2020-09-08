@@ -520,6 +520,13 @@ void appendTranscript1(char* s)
 	}
 }
 
+
+void display_status(char* s)
+{
+	HWND h = Utility::get_main();
+	::PostMessageA(h, WM_USER + 500, (WPARAM)0, (LPARAM)s);
+}
+
 void appendTranscriptln(char* s)
 {
 	std::string text(s);
@@ -560,6 +567,7 @@ void add_transcript_commands() {
 	Sforeign_symbol("cleartranscript", static_cast<void*>(cleartranscript));
 	Sforeign_symbol("setInputed", static_cast<void*>(set_inputed));
 	Sforeign_symbol("getInputed", static_cast<ptr>(get_inputed));
+	Sforeign_symbol("display_status", static_cast<ptr>(display_status));
 }
 
 
@@ -719,12 +727,21 @@ void CViewText::LoadFile(char* fname)
 void CViewText::LoadFile(std::wstring fname)
 {
 	loaded_file_name = fname;
+	ClearAll(inputed);
+	Sleep(10);
 	std::ifstream f(loaded_file_name);
 	std::stringstream buffer;
 	buffer << f.rdbuf();
 	buffer.seekg(0, std::ios::end);
 	const int size = buffer.tellg();
 	send_editor(inputed, SCI_SETTEXT, size, reinterpret_cast<LPARAM>(buffer.str().c_str()));
+	Sleep(10);
+	f.close();
+	auto loaded_message = fmt::format(L"Loaded file: {} size: {} bytes", loaded_file_name, size).c_str();
+	HWND h = Utility::get_main();
+	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)loaded_message);
+	Sleep(10);
+
 }
 
 void CViewText::NewFile()
@@ -739,8 +756,12 @@ void CViewText::SaveFile() {
 		return;
 	}
 
-	const auto l = send_editor(inputed, SCI_GETLENGTH) + 1;
+	auto saving_message = fmt::format(L"Saving file: {}", loaded_file_name).c_str();
+	HWND h = Utility::get_main();
+	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)saving_message);
+	Sleep(10);
 
+	const auto l = send_editor(inputed, SCI_GETLENGTH) + 1;
 	if (l == 0) {
 		return;
 	}
@@ -756,12 +777,15 @@ void CViewText::SaveFile() {
 	HANDLE hFile;
 	hFile = CreateFile(loaded_file_name.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 	WriteFile(hFile, text_data, l, &bytesWritten, NULL);
-	Sleep(100);
+	Sleep(10);
 	CloseHandle(hFile);
+	Sleep(10);
+	auto saved_message = fmt::format(L"Saved file: {} size: {} bytes.", loaded_file_name,(int)bytesWritten).c_str();
+	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)saved_message);
+	Sleep(10);
 	delete[] text_data;
  
-	HWND h = Utility::get_main();
-	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)loaded_file_name.c_str());
+
 }
 
 void CViewText::SaveFileAs(std::wstring fname)
@@ -772,6 +796,11 @@ void CViewText::SaveFileAs(std::wstring fname)
 	if (l == 0) {
 		return;
 	}
+
+	auto saving_message = fmt::format(L"Saving file AS: {}", loaded_file_name).c_str();
+	HWND h = Utility::get_main();
+	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)saving_message);
+	Sleep(10);
 
 	auto* text_data = new(std::nothrow) char[l];
 	if (text_data == nullptr) {
@@ -787,10 +816,13 @@ void CViewText::SaveFileAs(std::wstring fname)
 	Sleep(100);
 	CloseHandle(hFile);
 
+	auto saved_message = fmt::format(L"Saved file AS: {} size: {} bytes.", loaded_file_name, (int)bytesWritten).c_str();
+	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)saved_message);
+	Sleep(10);
+
 	delete[] text_data;
 
-	HWND h = Utility::get_main();
-	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)loaded_file_name.c_str());
+ 
 }
 
 

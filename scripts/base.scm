@@ -83,6 +83,8 @@
   (lambda (x)
     ((foreign-procedure "append_transcript" (string) void) x)))
 	
+	
+
 (define transcriptln
   (lambda (x)
     ((foreign-procedure "append_transcript_ln" (string) void) x)))
@@ -836,3 +838,6 @@
             (println
              (call-with-string-output-port
               (lambda (p) (display-condition c p)))))))))
+			  
+(define safegc
+ (lambda () (safely gc)))
