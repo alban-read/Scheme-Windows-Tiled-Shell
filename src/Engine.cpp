@@ -33,6 +33,9 @@ ptr every_function;
 
 std::wstring ws_status;
 
+std::deque<std::string> commands;
+bool cancelling = false;
+
 void setStatusBarText(int n, const char* s) {
 	HWND h = Utility::get_main();
 	auto ns = std::wstring(Utility::s2_ws(s));
@@ -96,6 +99,41 @@ void abnormal_exit()
 	exit(1);
 }
 
+
+void load_scripts()
+{
+	// load scripts
+	load_script_ifexists("\\scripts\\base.scm");
+	load_script_ifexists("\\scripts\\init.scm");
+	load_script_ifexists("\\scripts\\env.scm");
+	load_script_ifexists("\\scripts\\browser.scm");
+	load_script_ifexists("\\scripts\\appstart.scm");
+}
+
+void PressKeyboardKey(char key) {
+	INPUT ip;
+	ip.type = INPUT_KEYBOARD;
+	ip.ki.wScan = MapVirtualKey(key, MAPVK_VK_TO_VSC);
+	ip.ki.wVk = 0;
+	ip.ki.dwFlags = 0;
+	ip.ki.time = 0;
+	ip.ki.dwExtraInfo = 0;
+	ip.ki.dwFlags = KEYEVENTF_SCANCODE;
+	SendInput(1, &ip, sizeof(INPUT));
+	Sleep(100);
+	ip.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
+	SendInput(1, &ip, sizeof(INPUT));
+	Sleep(10);
+}
+
+void reset_scheme() {
+	PressKeyboardKey(VK_ESCAPE);
+	setStatusBarText(0, "Interrupt.");
+	invalidate();
+	Sleep(10);
+}
+
+
 // we are running ahead of the GUI opening
 DWORD WINAPI execstartup(LPVOID cmd)
 {
@@ -123,25 +161,16 @@ DWORD WINAPI execstartup(LPVOID cmd)
 
 		Sbuild_heap("DSCHEMEWSP2020.exe", custom_init);
 		Sforeign_symbol("EscapeKeyPressed", static_cast<ptr>(EscapeKeyPressed));
-
 		CD2DView::AddCommands();
-
 		CViewText::Start();
-
 		WebViewer::Start();
-
 		Sforeign_symbol("every", static_cast<ptr>(every));
 		Sforeign_symbol("after", static_cast<ptr>(after));
 
-		// load scripts
-		load_script_ifexists("\\scripts\\base.scm");
-		load_script_ifexists("\\scripts\\init.scm");
-		load_script_ifexists("\\scripts\\env.scm");
-
 		CALL1("suppress-greeting", Strue);
 		CALL1("waiter-prompt-string", Sstring(""));
-		load_script_ifexists("\\scripts\\browser.scm");
-		load_script_ifexists("\\scripts\\appstart.scm");
+
+		load_scripts();
 
 	}
 	catch (const CException& e)
@@ -151,16 +180,12 @@ DWORD WINAPI execstartup(LPVOID cmd)
 	}
 	return 0;
 }
+
 // runs on initial update
 void post_gui_load_script()
 {
 	load_script_ifexists("\\scripts\\initialupdate.scm");
 }
-
-
-std::deque<std::string> commands;
-// script execution; 
-bool cancelling = false;
 
 void eval_text(const char* cmd)
 {
@@ -210,18 +235,28 @@ DWORD WINAPI  process_commands(LPVOID x)
 			ReleaseMutex(g_script_mutex);
 			setStatusBarText(0, "Escape pressed.");
 			invalidate();
-			Sleep(1000);
+			Sleep(10);
 		}
  
-		WaitForSingleObject(g_script_mutex, INFINITE);
+
 		if (commands.empty()) {
-			setStatusBarText(0, "Ready.");
+			
+			setStatusBarText(0, "Ready");
 		}
-		ReleaseMutex(g_script_mutex);
+ 
 		while (commands.empty())
 		{
+			// run some gc
+			ticks++;
+			if (ticks % 30 == 0) {
+				WaitForSingleObject(g_script_mutex, INFINITE);
+				CALL0("safegc");
+				ReleaseMutex(g_script_mutex);
+			}
 			Sleep(25);
 		}
+
+		//
 		WaitForSingleObject(g_commands_mutex, INFINITE);
 		std::string eval;
 
@@ -252,11 +287,7 @@ DWORD WINAPI  process_commands(LPVOID x)
 		catch (...) {
 			ReleaseMutex(g_script_mutex);
 		}
-		// run some gc
-		ticks++;
-		if (ticks % 10 == 0) {
-			CALL0("gc");
-		}
+	
 		ReleaseMutex(g_script_mutex);
 		::Sleep(20);
 	}
@@ -516,6 +547,11 @@ void Engine::Stop()
 	cancel_commands();
 	stop_every();
 
+}
+
+void Engine::Reset()
+{
+	reset_scheme();
 }
 
 ptr Engine::Run(ptr f)

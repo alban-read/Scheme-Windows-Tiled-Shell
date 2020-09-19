@@ -27,6 +27,11 @@ public:
     static void transcriptln(char* s);
     static void TakeSnapShot();
     static void RestoreSnapShot();
+    static void ResetSearch();
+    static void SetSearchFlags(int flags);
+    static void Search(std::wstring s);
+    static void UpdateMenus(HMENU menu);
+    static void SetFont(char* s);
 
 protected:
     virtual void PreCreate(CREATESTRUCT& cs); 

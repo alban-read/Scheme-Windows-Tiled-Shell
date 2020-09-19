@@ -9,8 +9,10 @@ public:
 	static void Start();
 	static bool Spin(const int turns);
 	static void Stop();
+	static void Reset();
 	static ptr Run(ptr f);
 	static ptr RunNaked(ptr f);
 
 };
 
+void load_scripts();

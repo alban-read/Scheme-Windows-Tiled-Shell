@@ -73,19 +73,18 @@ void set_a_style(HWND h, int style, COLORREF fore, COLORREF back = RGB(0xFF, 0xF
 // scheme functions and macros
 static const char g_scheme[] =
 "abs " 
-
 "and any append append! apply assoc assq assv begin boolean? "
 "caaaar caaadr caaar caadar caaddr caadr caar cadaar cadadr cadar caddar cadddr caddr cadr car "
 "case case-lambda call-with-values catch "
 "cdaaar cdaadr cdaar cdadar cdaddr cdadr cdar cddaar cddadr cddar cdddar cddddr cdddr cddr cdr "
 "char? char=? char>? char<? char<=? char>=? char->integer "
-"cond cons cons* define define-syntax denominator "
+"cond cons cons* define define-record-type define-syntax denominator "
 "display do dotimes elseeq? eof-object? eqv? eval exact? expt "
-"field filter find first floor for format for-each format from "
+"field fields filter find first floor for format for-each format from "
 "hash "
-"if in inexact? integer? integer->char import iota "
+"if immutable import in inexact? integer? integer->char iota "
 "lambda last-pair length let let* letrec let-rec list list? list-ref  list->string list-tail "
-"map max member memq memv min mod"
+"map max member memq memv min mod mutable "
 "negative? nil not null? numerator "
 "pair? positive? procedure? "
 "quasiquote quote quotient or "
@@ -122,7 +121,7 @@ static const char g_scheme2[] =
 "pen-width play-sound radial-gradient render render-sprite render-sprite-scale-rot release restart-engine rotate  "
 "safely select-linear-brush select-radial-brush "
 "set-draw-sprite set-every-function set-linear-brush set-radial-brush  show sprite-size stop-every "
-"web-message write-text draw-into-sprite ";
+"web-message write-text ";
 
 static const char g_scheme3[] =
 " ";
@@ -251,11 +250,7 @@ void initialize_editor(HWND h) {
 
 	send_editor(h, SCI_ENSUREVISIBLEENFORCEPOLICY, 2);
 	send_editor(h, SCI_GOTOLINE, 2);
-
- 
 }
-
-
 
 void initialize_response_editor(HWND h) {
 
@@ -301,12 +296,10 @@ void initialize_response_editor(HWND h) {
 	set_a_style(h, STYLE_BRACELIGHT, orange, RGB(0xFF, 0xFF, 0xEA), fsz, text_font);
 	set_a_style(h, STYLE_BRACEBAD, red, RGB(0xFF, 0xFF, 0xEA), fsz, text_font);
 
-
 	send_editor(h, SCI_SETKEYWORDS, 0, reinterpret_cast<LPARAM>(g_scheme));
 	send_editor(h, SCI_SETKEYWORDS, 1, reinterpret_cast<LPARAM>(g_scheme2));
 	send_editor(h, SCI_SETKEYWORDS, 2, reinterpret_cast<LPARAM>(g_scheme3));
 	send_editor(h, SCI_SETKEYWORDS, 3, reinterpret_cast<LPARAM>(g_scheme4));
-
 
 	send_editor(h, SCI_ENSUREVISIBLEENFORCEPOLICY, 2);
 	send_editor(h, SCI_GOTOLINE, 2);
@@ -520,7 +513,6 @@ void appendTranscript1(char* s)
 	}
 }
 
-
 void display_status(char* s)
 {
 	HWND h = Utility::get_main();
@@ -534,7 +526,6 @@ void appendTranscriptln(char* s)
 	send_editor(transcript, SCI_APPENDTEXT, text.length(), reinterpret_cast<LPARAM>(text.c_str()));
 }
 
-
 void appendTranscript2(char* s, char* s1)
 {
 	if (transcript != nullptr) {
@@ -544,14 +535,12 @@ void appendTranscript2(char* s, char* s1)
 	}
 }
 
-
 void clear_transcript()
 {
 	if (transcript != nullptr) {
 		send_editor(transcript, SCI_CLEARALL);
 	}
 }
-
 
 ptr cleartranscript() {
 	if (transcript != nullptr) {
@@ -604,6 +593,7 @@ bool Droid_Sans_Mono_available = false;
 bool font_3270_available = false;
 
 
+
 int CALLBACK EnumFontFamExProc(
 	ENUMLOGFONTEX* lpelfe,
 	NEWTEXTMETRICEX* lpntme,
@@ -622,8 +612,8 @@ int CALLBACK EnumFontFamExProc(
 	if (font_face.find(L"Droid Sans Mono") != std::string::npos)
 		Droid_Sans_Mono_available = true;
 
-	if (font_face.find(L"Consolas") != std::string::npos)
-		consolas_available = true;
+ 
+	consolas_available = true;
 
 	if (font_face.find(L"3270") != std::string::npos)
 		font_3270_available = true;
@@ -644,7 +634,9 @@ void test_for_code_fonts() {
 int select_code_font() {
 
 	test_for_code_fonts();
+	consolas_available = true;
 
+ 
 	if (hack_available==true) {
 		strncpy(text_font, "Hack", 5);
 		return 0;
@@ -666,11 +658,57 @@ int select_code_font() {
 	return 4;
 }
 
+void CViewText::SetFont(char* s)
+{
+	strncpy(text_font, s, 1+strlen(s));
+	initialize_editor(inputed);
+}
+
+
+
+void CViewText::UpdateMenus(HMENU menu)
+{
+	test_for_code_fonts();
+	consolas_available = true;
+
+
+	if (hack_available == false)
+		::EnableMenuItem(menu, ID_FONTS_HACK, MF_DISABLED);
+	else 
+		::EnableMenuItem(menu, ID_FONTS_HACK, MF_ENABLED);
+
+	if (consolas_available == false)
+		::EnableMenuItem(menu, ID_FONTS_CONS, MF_DISABLED);
+	else
+		::EnableMenuItem(menu, ID_FONTS_CONS, MF_ENABLED);
+
+	if (DejaVu_Sans_Mono_available == false)
+		::EnableMenuItem(menu, ID_FONTS_DEJAVI, MF_DISABLED);
+	else
+		::EnableMenuItem(menu, ID_FONTS_DEJAVI, MF_ENABLED);
+
+	if (font_3270_available == false)
+		::EnableMenuItem(menu, ID_FONTS_IBM3270, MF_DISABLED);
+	else
+		::EnableMenuItem(menu, ID_FONTS_IBM3270, MF_ENABLED);
+
+	if (Droid_Sans_Mono_available == false)
+		::EnableMenuItem(menu, ID_FONTS_DROID, MF_DISABLED);
+		else 
+		::EnableMenuItem(menu, ID_FONTS_DROID, MF_ENABLED);
+
+
+
+}
+
+
+
 void CViewText::OnInitialUpdate()
 {
 	HWND h = this->GetHwnd();
 	select_code_font();
 	initialize_editor(h);
+
 	if (snap_shot == nullptr) return;
 	send_editor(h, SCI_SETTEXT, snap_shot_len, reinterpret_cast<LPARAM>(snap_shot));
 	snap_shot_len = 0;
@@ -708,7 +746,24 @@ void CViewText::EvalSelected(HWND hwnd)
 	if (hwnd == inputed || hwnd == transcript || hwnd == response) {
 		eval_selected_scite(hwnd);
 	}
-
+	else {
+		INPUT ip;
+		ip.type = INPUT_KEYBOARD;
+		ip.ki.wScan = MapVirtualKey(VK_SHIFT, MAPVK_VK_TO_VSC);
+		ip.ki.wVk = 0;
+		ip.ki.dwFlags = 0;
+		ip.ki.time = 0;
+		ip.ki.dwExtraInfo = 0;
+		ip.ki.dwFlags = KEYEVENTF_SCANCODE;
+		SendInput(1, &ip, sizeof(INPUT));
+		ip.ki.wScan = MapVirtualKey(VK_RETURN, MAPVK_VK_TO_VSC);
+		SendInput(1, &ip, sizeof(INPUT));
+		Sleep(30);
+		ip.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
+		SendInput(1, &ip, sizeof(INPUT));
+		ip.ki.wScan = MapVirtualKey(VK_SHIFT, MAPVK_VK_TO_VSC);
+		SendInput(1, &ip, sizeof(INPUT));
+	}
 }
 
 void CViewText::Eval(HWND hwnd)
@@ -886,7 +941,43 @@ void CViewText::RestoreSnapShot()
 
  
 }
- 
+
+std::string finding;
+int find_pos = 0;
+int search_flags;
+
+void CViewText::ResetSearch() {
+	find_pos = 0;
+	finding = "";
+}
+void CViewText::SetSearchFlags(int flags) {
+	search_flags = flags;
+	send_editor(inputed, SCI_SETSEARCHFLAGS,flags);
+}
+
+void CViewText::Search(std::wstring s)
+{
+	int pos = 0;
+	int flags = SCFIND_MATCHCASE | SCFIND_WHOLEWORD;
+	send_editor(inputed, SCI_TARGETWHOLEDOCUMENT);
+	std::string s1 = Utility::ws_2s(s);
+	if (s1.compare(finding)!=0){
+		finding = s1;
+		find_pos = 0;
+	}
+	if ((s1.compare(finding) == 0) && (find_pos > 0)) {
+		send_editor(inputed, SCI_SETTARGETSTART, find_pos);
+	}
+	pos = send_editor(inputed, SCI_SEARCHINTARGET, s1.length(), (LPARAM)s1.c_str());
+	auto line = send_editor(inputed, SCI_LINEFROMPOSITION, pos);
+	auto len = send_editor(inputed, SCI_GETLENGTH);
+	send_editor(inputed, SCI_GOTOLINE, line);
+	send_editor(inputed, SCI_SETSELECTIONSTART, pos);
+	send_editor(inputed, SCI_SETSELECTIONEND, pos+s1.length());
+	find_pos = pos + s1.length() + 1;
+}
+
+
 CDockText::CDockText()
 {
 	SetView(m_View);
@@ -905,6 +996,8 @@ void CViewResponseText::OnInitialUpdate()
 	if (response_snap_shot == nullptr) return;
 	send_editor(h, SCI_SETTEXT, response_snap_shot_len, reinterpret_cast<LPARAM>(response_snap_shot));
 	response_snap_shot_len = 0;
+
+
 }
 
 void CViewTranscriptText::PreCreate(CREATESTRUCT& cs)

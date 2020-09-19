@@ -12,6 +12,9 @@
 #include "Engine.h"
 #include "Utility.h"
 
+
+UINT uFindReplaceMsg;
+
 // Definitions for the CMainFrame class
 CMainFrame::CMainFrame() : m_isContainerTabsAtTop(FALSE), m_hideSingleTab(TRUE)
 {
@@ -133,6 +136,10 @@ CDocker* CMainFrame::NewDockerFromID(int id)
 }
 
 DWORD e0 = 0;
+HWND file_find_hdlg = NULL;
+FINDREPLACE fr;
+
+
 BOOL CMainFrame::OnCommand(WPARAM wparam, LPARAM lparam)
 {
 	UNREFERENCED_PARAMETER(lparam);
@@ -219,6 +226,47 @@ BOOL CMainFrame::OnCommand(WPARAM wparam, LPARAM lparam)
 		CViewText::ClearAll(::GetFocus());
 		break;
 	}
+
+	case ID_SCHEME_RESETENGINE:
+	{
+		Engine::Reset();
+		break;
+	}
+
+	case ID_EDIT_FIND:
+	{
+		HWND hwnd = Utility::get_main();
+		WCHAR szFindWhat[180];
+		ZeroMemory(&fr, sizeof(fr));
+		ZeroMemory(&szFindWhat, 180);
+		fr.lStructSize = sizeof(fr);
+		fr.hwndOwner = hwnd;
+		fr.lpstrFindWhat = szFindWhat;
+		fr.wFindWhatLen = 180;
+		fr.Flags = FR_DOWN | FR_WHOLEWORD;
+		file_find_hdlg = FindText(&fr);
+		break;
+	}
+
+	case ID_FONTS_CONS:
+		CViewText::SetFont("Consolas");
+		break;
+
+	case ID_FONTS_HACK:
+		CViewText::SetFont("Hack");
+		break;
+
+	case ID_FONTS_DEJAVI:
+		CViewText::SetFont("DejaVu Sans Mono");
+		break;
+
+	case ID_FONTS_DROID:
+		CViewText::SetFont("Droid Sans Mono");
+		break;
+
+	case ID_FONTS_IBM3270:
+		CViewText::SetFont("ibm3270");
+		break;
 
 	}
 
@@ -462,7 +510,7 @@ void CMainFrame::OnInitialUpdate()
 {
 	HWND hwnd = GetHwnd();
 	Utility::set_main(hwnd);
-
+	uFindReplaceMsg = RegisterWindowMessage(FINDMSGSTRING);
 	SetDockStyle(DS_CLIENTEDGE);
 	DragAcceptFiles(true);
 
@@ -478,6 +526,7 @@ void CMainFrame::OnMenuUpdate(UINT id)
 {
 	UINT check;
 	switch (id)
+
 	{
 	case IDM_CONTAINER_TOP:
 		check = (m_isContainerTabsAtTop) ? MF_CHECKED : MF_UNCHECKED;
@@ -488,8 +537,11 @@ void CMainFrame::OnMenuUpdate(UINT id)
 		check = (m_hideSingleTab) ? MF_CHECKED : MF_UNCHECKED;
 		GetFrameMenu().CheckMenuItem(id, check);
 		break;
-	}
 
+	
+
+	}
+	CViewText::UpdateMenus(GetFrameMenu().GetHandle());
 	CDockFrame::OnMenuUpdate(id);
 }
 
@@ -530,10 +582,38 @@ void CMainFrame::SetupToolBar()
 	AddToolBarButton(0);
 }
 
+ 
+
 
 
 LRESULT CMainFrame::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	
+	LPFINDREPLACE lpfr;
+
+	if (uMsg == uFindReplaceMsg)
+	{
+		 
+		lpfr = (LPFINDREPLACE)lParam;
+
+ 
+		if (lpfr->Flags & FR_DIALOGTERM)
+		{
+			file_find_hdlg = NULL;
+			CViewText::ResetSearch();
+			return 0;
+		}
+
+ 
+		if (lpfr->Flags & FR_FINDNEXT)
+		{
+			CViewText::SetSearchFlags(lpfr->Flags);
+			CViewText::Search(lpfr->lpstrFindWhat);
+		}
+
+		return 0;
+	}
+	
 	switch (uMsg)
 	{
 

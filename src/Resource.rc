@@ -44,12 +44,14 @@ BEGIN
         MENUITEM "Save As",                     IDM_FILE_SAVE_AS
         MENUITEM "E&xit",                       IDM_FILE_EXIT
     END
-    POPUP "&View"
+    POPUP "Edit"
     BEGIN
-        MENUITEM "&Tool Bar",                   IDW_VIEW_TOOLBAR, CHECKED
-        MENUITEM "&Status Bar",                 IDW_VIEW_STATUSBAR, CHECKED
+        MENUITEM "Cut",                         IDM_EDIT_CUT
+        MENUITEM "Copy",                        IDM_EDIT_COPY
+        MENUITEM "Paste",                       IDM_EDIT_PASTE
+        MENUITEM "Find",                        ID_EDIT_FIND
     END
-    POPUP "&Arrange Tiles"
+    POPUP "&Arrange"
     BEGIN
         MENUITEM "Documentation",               ID_DOCKING_BROWSERLAYOUT
         MENUITEM "&Default Layout",             IDM_DOCK_DEFAULT
@@ -57,6 +59,25 @@ BEGIN
         MENUITEM "&Evaluator and Image Layout", ID_DOCKING_IMAGE_EVALUATOR
         MENUITEM "Evaluator and Transcript Layout", ID_DOCKING_EVALUATOR
         MENUITEM "&Close All",                  IDM_DOCK_CLOSEALL
+    END
+    POPUP "Scheme"
+    BEGIN
+        MENUITEM "Execute",                     IDM_ACTIONS_EXECUTE
+        MENUITEM "Execute Selection",           IDM_ACTIONS_EXECUTE_SELECTED
+        MENUITEM "Interrupt",                   ID_SCHEME_RESETENGINE
+    END
+    POPUP "&View"
+    BEGIN
+        MENUITEM "&Tool Bar",                   IDW_VIEW_TOOLBAR, CHECKED
+        MENUITEM "&Status Bar",                 IDW_VIEW_STATUSBAR, CHECKED
+        POPUP "Fonts"
+        BEGIN
+            MENUITEM "Consolas",                    ID_FONTS_CONS
+            MENUITEM "Droid",                       ID_FONTS_DROID
+            MENUITEM "DejaVu",                      ID_FONTS_DEJAVI
+            MENUITEM "Hack",                        ID_FONTS_HACK
+            MENUITEM "IBM3270",                     ID_FONTS_IBM3270
+        END
     END
     POPUP "&Options"
     BEGIN
@@ -147,10 +168,12 @@ IDW_MAIN ACCELERATORS
 BEGIN
     VK_LEFT,        ID_BACK_BROWSER,        VIRTKEY, ALT, NOINVERT
     VK_HOME,        ID_HOME_BROWSER,        VIRTKEY, ALT, NOINVERT
+    "R",            ID_SCHEME_RESETENGINE,  VIRTKEY, CONTROL, ALT, NOINVERT
     VK_RETURN,      IDM_ACTIONS_EXECUTE,    VIRTKEY, CONTROL, NOINVERT
     VK_RETURN,      IDM_ACTIONS_EXECUTE_SELECTED, VIRTKEY, SHIFT, NOINVERT
     "C",            IDM_EDIT_COPY,          VIRTKEY, CONTROL, NOINVERT
     "X",            IDM_EDIT_CUT,           VIRTKEY, CONTROL, NOINVERT
+    "F",            ID_EDIT_FIND,           VIRTKEY, CONTROL, NOINVERT
     "V",            IDM_EDIT_PASTE,         VIRTKEY, CONTROL, NOINVERT
     "Y",            IDM_EDIT_REDO,          VIRTKEY, SHIFT, CONTROL, NOINVERT
     "Z",            IDM_EDIT_UNDO,          VIRTKEY, CONTROL, NOINVERT
@@ -158,8 +181,8 @@ BEGIN
     "O",            IDM_FILE_OPEN,          VIRTKEY, CONTROL, NOINVERT
     "P",            IDM_FILE_PRINT,         VIRTKEY, CONTROL, NOINVERT
     "S",            IDM_FILE_SAVE,          VIRTKEY, CONTROL, NOINVERT
-    "L",            IDM_VIEW_CLEAR,         VIRTKEY, CONTROL, NOINVERT
     "S",            IDM_FILE_SAVE_AS,       VIRTKEY, ALT, NOINVERT
+    "L",            IDM_VIEW_CLEAR,         VIRTKEY, CONTROL, NOINVERT
 END
 
 

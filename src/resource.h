@@ -99,6 +99,20 @@
 #define ID_FILE_SAVE                    32781
 #define ID_FILE_NEW                     32782
 #define IDM_FILE_SAVE_AS                32783
+#define ID_SCHEME_RESETENGINE           32786
+#define ID_SCHEME_EXECUTE               32789
+#define ID_SCHEME_EXECUTESELECTION      32790
+#define ID_EDIT_FIND                    32792
+#define ID_FILE_FIND                    32794
+#define ID_EDIT_CUT                     32795
+#define ID_EDIT_COPY                    32796
+#define ID_EDIT_PASTE                   32797
+#define ID_VIEW_FONTS                   32798
+#define ID_FONTS_HACK                   32799
+#define ID_FONTS_CONS                   32800
+#define ID_FONTS_DROID                  32801
+#define ID_FONTS_DEJAVI                 32802
+#define ID_FONTS_IBM3270                32803
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -107,7 +121,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        150
-#define _APS_NEXT_COMMAND_VALUE         32786
+#define _APS_NEXT_COMMAND_VALUE         32804
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           150
 #endif
