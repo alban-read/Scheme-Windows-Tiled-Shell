@@ -34,13 +34,13 @@ Is used in the documentation pane of the application.
 
 ### Requirements
 
-In order to work - this application requires Windows 10; Latest Webview2 and visual C++ 2019 run time libraries.
+In order to work - this application requires Windows 10; the new Webview2 and the visual C++ 2019 run time libraries.
 
 If your run this app; and the documentation panes are blank; just use the installer from Microsoft for the new WebView2 here:-
 
 https://developer.microsoft.com/en-us/microsoft-edge/webview2/
 
-If running the app does nothing at all; it does not open; you dont happen to have the latest C runtime installed; which you can get from Microsoft here:-
+If running the app does nothing at all; it does not open; you probably do not have the latest C runtime installed; which you can get from Microsoft here:-
 
 [Visual C Redistributable](https://support.microsoft.com/en-gb/help/2977003/the-latest-supported-visual-c-downloads)
 
