@@ -75,14 +75,14 @@ void load_script_ifexists(const char* script_relative)
 
 void register_boot_file(const char* boot_file, bool& already_loaded)
 {
- 
+
 	auto dest = Utility::GetFullPathFor(Utility::widen(boot_file).c_str());
 	if (!already_loaded &&
 		!(INVALID_FILE_ATTRIBUTES == GetFileAttributes(dest.c_str()) &&
 			GetLastError() == ERROR_FILE_NOT_FOUND))
 	{
 		already_loaded = true;
-		Sregister_boot_file( Utility::ws_2s(dest).c_str());
+		Sregister_boot_file(Utility::ws_2s(dest).c_str());
 	}
 }
 
@@ -139,7 +139,7 @@ DWORD WINAPI execstartup(LPVOID cmd)
 {
 	try
 	{
- 
+
 		Sscheme_init(abnormal_exit);
 		bool register_petite = false;
 		bool register_cs = false;
@@ -159,7 +159,7 @@ DWORD WINAPI execstartup(LPVOID cmd)
 		}
 
 
-		Sbuild_heap("DSCHEMEWSP2020.exe", custom_init);
+		Sbuild_heap("DSCHEMEWSP2021.exe", custom_init);
 		Sforeign_symbol("EscapeKeyPressed", static_cast<ptr>(EscapeKeyPressed));
 		CD2DView::AddCommands();
 		CViewText::Start();
@@ -209,6 +209,20 @@ void safe_cancel_commands()
 
 void init_commands();
 
+
+void stop_every() {
+	if (every_timer_queue != nullptr && h_every_timer != nullptr) {
+		bool result = DeleteTimerQueueTimer(every_timer_queue, h_every_timer, NULL);
+		int tries = 0;
+		while (0 == result && GetLastError() != ERROR_IO_PENDING && tries<10) { // failed
+			Sleep(10);
+			result = DeleteTimerQueueTimer(every_timer_queue, h_every_timer, NULL);
+			tries++;
+		}
+		every_timer_queue = nullptr; h_every_timer = nullptr;	
+	}
+}
+
 DWORD WINAPI  process_commands(LPVOID x)
 {
 	execstartup((LPVOID)L"");
@@ -226,10 +240,7 @@ DWORD WINAPI  process_commands(LPVOID x)
 			}
 			commands.shrink_to_fit();
 
-			if (every_timer_queue != nullptr && h_every_timer != nullptr) {
-				DeleteTimerQueueTimer(every_timer_queue, h_every_timer, NULL);
-				every_timer_queue = nullptr; h_every_timer = nullptr;
-			}
+			stop_every();
 			CD2DView::Stop();
 			ReleaseMutex(g_commands_mutex);
 			ReleaseMutex(g_script_mutex);
@@ -237,13 +248,13 @@ DWORD WINAPI  process_commands(LPVOID x)
 			invalidate();
 			Sleep(10);
 		}
- 
+
 
 		if (commands.empty()) {
-			
+
 			setStatusBarText(0, "Ready");
 		}
- 
+
 		while (commands.empty())
 		{
 			// run some gc
@@ -282,12 +293,12 @@ DWORD WINAPI  process_commands(LPVOID x)
 			else {
 				CALL1("eval->string", Sstring_utf8(eval.c_str(), -1));
 			}
-			 
+
 		}
 		catch (...) {
 			ReleaseMutex(g_script_mutex);
 		}
-	
+
 		ReleaseMutex(g_script_mutex);
 		::Sleep(20);
 	}
@@ -320,12 +331,7 @@ void cancel_commands()
 }
 
 
-void stop_every() {
-	if (every_timer_queue != nullptr && h_every_timer != nullptr) {
-		DeleteTimerQueueTimer(every_timer_queue, h_every_timer, NULL);
-		every_timer_queue = nullptr; h_every_timer = nullptr;
-	}
-}
+
 
 ptr run_func(ptr f) {
 	Slock_object(f);
@@ -333,7 +339,7 @@ ptr run_func(ptr f) {
 	WaitForSingleObject(g_script_mutex, INFINITE);
 	try {
 		if (Sprocedurep(f)) {
-			result=Scall0(f);
+			result = Scall0(f);
 			Sunlock_object(f);
 		}
 	}
@@ -347,7 +353,7 @@ ptr run_func(ptr f) {
 	return result;
 }
 
- 
+
 
 // no mutex, we are called from running scheme
 ptr run_naked_func(ptr f) {
@@ -378,10 +384,7 @@ VOID CALLBACK run_every(PVOID lpParam, BOOLEAN TimerOrWaitFired) {
 		}
 		commands.shrink_to_fit();
 
-		if (every_timer_queue != nullptr && h_every_timer != nullptr) {
-			DeleteTimerQueueTimer(every_timer_queue, h_every_timer, NULL);
-			every_timer_queue = nullptr; h_every_timer = nullptr;
-		}
+		stop_every();
 		CD2DView::Stop();
 		ReleaseMutex(g_commands_mutex);
 		ReleaseMutex(g_script_mutex);
@@ -390,8 +393,8 @@ VOID CALLBACK run_every(PVOID lpParam, BOOLEAN TimerOrWaitFired) {
 		Sleep(1000);
 		return;
 	}
-	
-	
+
+
 	CD2DView::ScanKeys();
 	WaitForSingleObject(g_script_mutex, INFINITE);
 	try {
@@ -418,7 +421,7 @@ void start_every(int delay, int period, ptr p) {
 
 		try {
 			CreateTimerQueueTimer(&h_every_timer, every_timer_queue,
-				static_cast<WAITORTIMERCALLBACK>(run_every), p, delay, period,WT_EXECUTEINTIMERTHREAD);
+				static_cast<WAITORTIMERCALLBACK>(run_every), p, delay, period, WT_EXECUTEINTIMERTHREAD);
 		}
 		catch (const CException& e)
 		{
@@ -429,7 +432,7 @@ void start_every(int delay, int period, ptr p) {
 	}
 }
 
-// only one thing runs every.
+// only one procedure (p) runs every period ms starting after delay ms
 ptr every(int delay, int period, int mode, ptr p)
 {
 	swap_mode = mode;
@@ -532,12 +535,12 @@ void Engine::Start() {
 	if (g_commands_mutex == nullptr) {
 		g_commands_mutex = CreateMutex(nullptr, FALSE, nullptr);
 	}
- 
+
 	init_commands();
 }
 
 bool Engine::Spin(const int turns)
-{ 
+{
 	return true;
 }
 

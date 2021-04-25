@@ -70,7 +70,7 @@ void set_a_style(HWND h, int style, COLORREF fore, COLORREF back = RGB(0xFF, 0xF
 }
 
 
-// scheme functions and macros
+// standard scheme functions and macros
 static const char g_scheme[] =
 "abs " 
 "and any append append! apply assoc assq assv begin boolean? "
@@ -96,7 +96,7 @@ static const char g_scheme[] =
 "values vector vector? vector-length vector->list vector-ref vector-set! "
 "while when where write ";
 
-// 'native' commands that have been added by this app.
+// custom 'native' commands that have been added by this app.
 static const char g_scheme2[] =
 "add-clear-image add-draw-rect add-draw-ellipse add-draw-sprite  add-fill-colour add-fill-ellipse "
 "add-fill-linear-ellipse add-fill-linear-rect "
@@ -360,7 +360,7 @@ static bool is_brace(const int c)
 
 
 // this is hooked into the notify event in the header files.
-// this just adds brace highlighting.
+// this just adds brace highlighting; kind of essential for scheme.
 
 void scintillate(SCNotification* N, LPARAM lParam) {
 	const auto h = static_cast<HWND>(N->nmhdr.hwndFrom);
@@ -439,7 +439,7 @@ void eval_selected_scite(HWND hc)
 char* sc_getText(HWND hc) {
 	const auto l = send_editor(hc, SCI_GETLENGTH) + 1;
 	auto cmd = new(std::nothrow) char[l];
-	memset(cmd, 0, l);
+	if (cmd != nullptr) memset(cmd, 0, l);
 	send_editor(hc, SCI_GETTEXT, l, reinterpret_cast<LPARAM>(cmd));
 	return cmd;
 }
@@ -477,7 +477,7 @@ ptr get_inputed()
 	if (inputed == nullptr) return Sstring("");
 	const int l = send_editor(inputed, SCI_GETLENGTH) + 1;
 	auto cmd = new(std::nothrow) char[l];
-	memset(cmd, 0, l);
+	if(cmd!=nullptr) memset(cmd, 0, l);
 	send_editor(inputed, SCI_GETTEXT, l, reinterpret_cast<LPARAM>(cmd));
 	const auto s = Sstring(cmd);
 	delete[] cmd;
@@ -771,8 +771,11 @@ void CViewText::Eval(HWND hwnd)
 	eval_scite(hwnd);
 }
 
-
+// used in messages
 std::wstring loaded_file_name(L"");
+std::wstring loaded_message(L"");
+std::wstring saving_message(L"");
+std::wstring saved_message(L"");
 
 void CViewText::LoadFile(char* fname)
 {
@@ -792,9 +795,11 @@ void CViewText::LoadFile(std::wstring fname)
 	send_editor(inputed, SCI_SETTEXT, size, reinterpret_cast<LPARAM>(buffer.str().c_str()));
 	Sleep(10);
 	f.close();
-	auto loaded_message = fmt::format(L"Loaded file: {} size: {} bytes", loaded_file_name, size).c_str();
-	HWND h = Utility::get_main();
-	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)loaded_message);
+	if (!loaded_file_name.empty()) {
+		loaded_message = fmt::format(L"Loaded file: {} size: {} bytes", loaded_file_name, size);
+		HWND h = Utility::get_main();
+		::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)loaded_message.c_str());
+	}
 	Sleep(10);
 
 }
@@ -811,9 +816,9 @@ void CViewText::SaveFile() {
 		return;
 	}
 
-	auto saving_message = fmt::format(L"Saving file: {}", loaded_file_name).c_str();
+	saving_message = fmt::format(L"Saving file: {}", loaded_file_name);
 	HWND h = Utility::get_main();
-	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)saving_message);
+	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)saving_message.c_str());
 	Sleep(10);
 
 	const auto l = send_editor(inputed, SCI_GETLENGTH) + 1;
@@ -835,8 +840,8 @@ void CViewText::SaveFile() {
 	Sleep(10);
 	CloseHandle(hFile);
 	Sleep(10);
-	auto saved_message = fmt::format(L"Saved file: {} size: {} bytes.", loaded_file_name,(int)bytesWritten).c_str();
-	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)saved_message);
+	saved_message = fmt::format(L"Saved file: {} size: {} bytes.", loaded_file_name,(int)bytesWritten);
+	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)saved_message.c_str());
 	Sleep(10);
 	delete[] text_data;
  
@@ -852,9 +857,9 @@ void CViewText::SaveFileAs(std::wstring fname)
 		return;
 	}
 
-	auto saving_message = fmt::format(L"Saving file AS: {}", loaded_file_name).c_str();
+	saving_message = fmt::format(L"Saving file AS: {}", loaded_file_name);
 	HWND h = Utility::get_main();
-	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)saving_message);
+	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)saving_message.c_str());
 	Sleep(10);
 
 	auto* text_data = new(std::nothrow) char[l];
@@ -871,8 +876,8 @@ void CViewText::SaveFileAs(std::wstring fname)
 	Sleep(100);
 	CloseHandle(hFile);
 
-	auto saved_message = fmt::format(L"Saved file AS: {} size: {} bytes.", loaded_file_name, (int)bytesWritten).c_str();
-	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)saved_message);
+	saved_message = fmt::format(L"Saved file AS: {} size: {} bytes.", loaded_file_name, (int)bytesWritten);
+	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)saved_message.c_str());
 	Sleep(10);
 
 	delete[] text_data;

@@ -400,6 +400,7 @@ BOOL CMainFrame::OnFileOpen()
 	if (SUCCEEDED(hr))
 	{
 	
+		// not including .scm as that is our essential file.
 		COMDLG_FILTERSPEC FileTypes[] = {
 		{ L"Scheme Scripts", L"*.ss" },
 		{ L"All files", L"*.*" }

@@ -52,6 +52,7 @@ std::wstring load_utf8_file_to_string(const std::wstring& filename)
     std::wstring buffer;  
     FILE* f;
     const auto err = _wfopen_s(&f, filename.c_str(), L"rtS, ccs=UTF-8");
+
     // Failed to open file
     if (f == nullptr || err != 0)
     {
@@ -190,7 +191,7 @@ void WebViewer::OnInitialUpdate()
                                 if (startsWith(uri, "https://github.com/alban-read/")) safe_ish = true;
                                 if (startsWith(uri, "https://www.scheme.com/")) safe_ish = true;
                                 if (startsWith(uri, "http://cisco.github.io/ChezScheme/csug9.5/")) safe_ish = true;
-                                if (startsWith(uri, "file:")) safe_ish = true;
+                                if (startsWith(uri, "file:")) safe_ish = true; //local
 
                                 if (uri.find("Scheme-Windows-Tiled-Shell\docs") != std::string::npos) {
                                     safe_ish = true;
@@ -212,7 +213,7 @@ void WebViewer::OnInitialUpdate()
                                 const char* api_cmd = "::api:";
                                 if (text.rfind(api_cmd, 0) == 0) {
                                     char* end_ptr;
-                                    int n = static_cast<int>(strtol(text.c_str() + strlen(api_cmd), &end_ptr, 10));
+                                    long int n = static_cast<int>(strtol(text.c_str() + strlen(api_cmd), &end_ptr, 10));
 
                                     if (n < 63) {
                                         std::string param = end_ptr;

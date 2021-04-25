@@ -27,8 +27,8 @@ HANDLE g_sprite_commands_mutex = nullptr;
 
 float prefer_width = 800.0f;
 float prefer_height = 600.0f;
-// represents the visible surface on the window itself.
 
+// represents the visible surface on the window itself
 ID2D1HwndRenderTarget* pRenderTarget;
 
 // stoke width 
@@ -472,7 +472,7 @@ ptr d2d_MakeSpriteInBank(int n, int w, int h, ptr f)
 	ActiveRenderTarget = oldRenderTarget;
 	BitmapRender2Bank->Release();
  
-	if (SUCCEEDED(hr)) {
+	if (SUCCEEDED(hr) && pSpriteSheet[n] != nullptr) {
 		auto size = pSpriteSheet[n]->GetPixelSize();
 		sprite_attributes[n].width = size.width;
 		sprite_attributes[n].height = size.height;
@@ -1119,6 +1119,7 @@ ptr d2d_set_font(char* s, float size) {
 	return Snil;
 }
 
+// from file to bank
 void d2d_sprite_loader(char* filename, int n)
 {
 	if (n > bank_size - 1) {
@@ -1130,7 +1131,10 @@ void d2d_sprite_loader(char* filename, int n)
 		GetLastError() == ERROR_FILE_NOT_FOUND)) return;
 
 	HRESULT hr;
-	CoInitialize(NULL);
+	hr = CoInitialize(NULL);
+	if (FAILED(hr)) {
+		return;
+	}
 	IWICImagingFactory* wicFactory = NULL;
 	hr = CoCreateInstance(
 		CLSID_WICImagingFactory,
@@ -2278,6 +2282,7 @@ void render_sprite_commands() {
 		}
 	}
 	ActiveRenderTarget->EndDraw();
+
 	// clear for next step
 	for (int i = 0; i < sprite_command_size - 1; i++) {
 		sprite_commands[i].active = false;
@@ -2527,7 +2532,7 @@ int debounce = 0;
 
 void scan_keys() {
 	if (debounce_delay == 0) return;
-	if (GetTickCount() - debounce > debounce_delay) {
+	if (GetTickCount64() - debounce > debounce_delay) {
 		if (GetAsyncKeyState(VK_LEFT) != 0)
 			graphics_keypressed.left = true;
 		if (GetAsyncKeyState(VK_RIGHT) != 0)
@@ -2540,7 +2545,7 @@ void scan_keys() {
 			graphics_keypressed.space = true;
 		if (GetAsyncKeyState(VK_CONTROL) != 0)
 			graphics_keypressed.ctrl = true;
-		debounce = GetTickCount();
+		debounce = GetTickCount64();
 	}
 }
 
@@ -2553,7 +2558,7 @@ ptr graphics_keys(void) {
 	a = cons_sbool("ctrl", graphics_keypressed.ctrl, a);
 	a = cons_sbool("space", graphics_keypressed.space, a);
 	a = cons_sfixnum("key", graphics_keypressed.key_code, a);
-	a = cons_sfixnum("recent", GetTickCount() - graphics_keypressed.when, a);
+	a = cons_sfixnum("recent", GetTickCount64() - graphics_keypressed.when, a);
 	graphics_keypressed.ctrl = false;
 	graphics_keypressed.left = false;
 	graphics_keypressed.right = false;
@@ -2561,7 +2566,7 @@ ptr graphics_keys(void) {
 	graphics_keypressed.up = false;
 	graphics_keypressed.space = false;
 	graphics_keypressed.key_code = 0;
-	graphics_keypressed.when = GetTickCount();
+	graphics_keypressed.when = GetTickCount64();
 	return a;
 }
 
@@ -2576,7 +2581,7 @@ LRESULT CD2DView::WndProc(UINT msg, WPARAM wparam, LPARAM lparam)
     {
     case WM_KEYDOWN:
         graphics_keypressed.key_code = wparam;
-        graphics_keypressed.when = GetTickCount();
+        graphics_keypressed.when = GetTickCount64();
         break;
 
     case WM_DISPLAYCHANGE: 
