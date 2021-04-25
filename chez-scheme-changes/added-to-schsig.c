@@ -21,7 +21,9 @@ DWORD WINAPI escape_watcher(LPVOID x)
  
 	}		
 }
-static void init_signal_handlers() {
+
+// arrange this to be called by init_signal_handler below.
+static void do_init_signal_handlers() {
 	
     HANDLE escape_key_thread = CreateThread(
 			0,
