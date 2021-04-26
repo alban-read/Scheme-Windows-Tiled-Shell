@@ -20,13 +20,13 @@ Selfie
 
 <img src='https://github.com/alban-read/Scheme-Windows-Tiled-Shell/blob/master/docs/selfie.PNG'> 
 
-I hope that programming can be fun again in a fast interactive workspace.
+- I hope that programming can be fun again in a fast interactive workspace.
+- Create animations using direct 2D accelerated graphics.
 
-Create animations using direct 2D accelerated graphics.
+Docs
 
-The Wiki here https://github.com/alban-read/Scheme-Windows-Tiled-Shell/wiki
-
-Is used in the documentation pane of the application.
+- The Wiki here https://github.com/alban-read/Scheme-Windows-Tiled-Shell/wiki
+- The Wiki is meant to be used from the documentation pane of the application.
 
 ----
 
