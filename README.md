@@ -6,11 +6,9 @@ This is a windows workspace for Chez Scheme.
 
 Provides a simple alternative to a terminal; creates a workspace type interface; that prevents text rushing off the screen; keeps results and output into a different pane than the script source.
 
-Uses tiled panes rather than overlapping windows; there are several standard arrangements that rearrange the panes in a useful way.
-
-Provides a graphical output pane; for drawings and animations.
-
-I use versions of this application to write apps that script dozens of C libraries; Chez Scheme is very good at that.
+- Uses tiled panes rather than overlapping windows; there are several standard arrangements that rearrange the panes in a useful way.
+- Provides a graphical output pane; for drawings and animations.
+- I use versions of this application to write apps that script dozens of C libraries; Chez Scheme is very good at that.
 
 ## Fun things
 
