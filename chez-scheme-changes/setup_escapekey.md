@@ -2,12 +2,12 @@
 
 - A Windows C++ compiler.
 - Visual Studio Community
-- https://visualstudio.microsoft.com/vs/community/
-- Is a C++ compiler to build the project.
+   - https://visualstudio.microsoft.com/vs/community/
+   
 
 A good way to install C++ libraries is to use vcpkg
 
-There are many usful libraries you might like to integrate into Scheme later.
+There are many usful libraries under vcpkg that you might like to integrate into Scheme later.
 
 git clone https://github.com/microsoft/vcpkg
 .\vcpkg\bootstrap-vcpkg.bat
@@ -18,19 +18,18 @@ git clone https://github.com/microsoft/vcpkg
 
 ### Unmodified chez
 
-Grab binary code from chez installer
+Grab the binary code (lib and dll) from the chez installer
 
-This binary code works in every respect except it does not trap the windows escape key
+This binary code works in every respect *except it does not trap the windows escape key*
 
 To just use the scheme from the installer:-
 
 - You need to copy the .lib and DLL from the binary installation into the VCPKG tree.
 - You need to copy the DLL to the project release folder. 
 - The project will then build and run; however scripts can not be stopped if they run away; 
- 
 
 
-Building Chez from source on windows.
+### Building Chez from source on windows.
 
 - The app essentially works with unmodified binary files; provided by the installer.
 - However you might want to modify scheme; if so you need to build it from source.
