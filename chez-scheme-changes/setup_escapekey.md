@@ -1,4 +1,4 @@
-# Things needed to update scheme for this project.
+## Things needed to update the scheme engine for this project.
 
 - A Windows C++ compiler.
 - Visual Studio Community
@@ -46,7 +46,7 @@ Unfortunately it means that we need to install linux on windows to build scheme.
 Since this experience also uses a terminal I recommend you install the new windows terminal from the App Store.
  
 
-Install WSL
+### Install WSL
 
 Follow the tedious seven step process
 
@@ -59,7 +59,7 @@ This requires admin access; a reboot and installs an alien operating system onto
 
 wsl --set-default-version [1 or 2] (I have tested with 1.)
 
-## Fetch Ubuuntu from the store.
+### Fetch Ubuuntu from the store.
 
 - You will need to select Ubuntu from the store to follow along.
 - Once installed you will have ubuntu as an app; that starts a bash shell.
@@ -73,35 +73,35 @@ Start the ubuntu shell (I keep projects under c:\projects)
 
 In the terminal
 
-# change directory
+### change directory
 cd /mnt/c/projects
 
-# we do need the make utility
+### we do need the make utility
 
 sudo apt install make
 
-# get the source code for Chez from github
+### get the source code for Chez from github
 
 sudo git clone https://github.com/cisco/ChezScheme.git
 
-# change the owner of the files to your own linux user (mine is alban)
+# change the owner of the files to your own linux user (mine was alban)
 
 cd Chez*
 
 sudo chown -R alban .
 
-# configure for windows
+### configure for windows
 
 env OS=Windows_NT ./configure
 
-# build using windows tools
+### build using windows tools
 
 env OS=Windows_NT make
 
 
 I get some errors at the end of the build.
 
-However the necessary files (.dll, .lib, .boot) have been created here
+However ensure the necessary files (.dll, .lib, .boot) have been created here
 
 C:\projects\ChezScheme\a6nt\bin\a6nt
 
@@ -109,6 +109,7 @@ and here
 
 C:\projects\ChezScheme\a6nt\boot\a6nt
 
+### Recap
 
 We have used Linux to build a windows exe with visual C++
 
@@ -121,11 +122,11 @@ or here from cmd
 c:\projects\ChezScheme\a6nt\bin\a6nt>scheme
 
 
-The whole point though is we wanted to modify scheme; to be interruptable in a GUI window.
+The whole point though is we want to modify scheme; to be interruptable in a GUI window.
 
 We need to edit a file and recompile again.
 
-For example add this code
+For example add this minimal code; or the more expansive code in this repo.
 
 
 ```C++
@@ -148,7 +149,9 @@ DWORD WINAPI escape_watcher(LPVOID x)
 
     }
 }
-static void do_init_signal_handlers() {
+
+// .. update the windows init_signal_handlers code ..
+static void init_signal_handlers() {
 
     HANDLE escape_key_thread = CreateThread(
         0,
@@ -161,7 +164,7 @@ static void do_init_signal_handlers() {
 
 ```
 
-to schsig.c the chez signal handler.
+to schsig.c the chez signal handler; and make sure you are editing the a6nt\c files. 
 
 Edit the init_signal_handler to run do_init_signal_handlers
 
@@ -199,7 +202,7 @@ Interrupting a running thread mid-flow is generally fatal; which is why we go to
 scheme interrupt itself when safe to do so.
 
 
-Rebuild Chez scheme
+### Rebuild Chez scheme
 
 Close all your terminals; exit scheme; and reopen ubuntu.
 
@@ -214,7 +217,7 @@ env OS=Windows_NT make clean
 
 env OS=Windows_NT make
 
-Check the dates are updated in here:-
+### Check the dates are updated in here:-
 
 C:\projects\ChezScheme\a6nt\bin\a6nt
 
