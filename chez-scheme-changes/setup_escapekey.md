@@ -6,8 +6,7 @@
    
 
 A good way to install C++ libraries is to use vcpkg
-
-There are many usful libraries under vcpkg that you might like to integrate into Scheme later.
+- There are many useful libraries under vcpkg that you might like to integrate into Scheme later.
 
 - git clone https://github.com/microsoft/vcpkg
    - .\vcpkg\bootstrap-vcpkg.bat
