@@ -82,7 +82,7 @@ sudo apt install make
 
 sudo git clone https://github.com/cisco/ChezScheme.git
 
-# change the owner of the files to your own linux user (mine was alban)
+### change the owner of the files to your own linux user (mine was alban)
 
 cd Chez*
 
@@ -96,8 +96,7 @@ env OS=Windows_NT ./configure
 
 env OS=Windows_NT make
 
-
-I get some errors at the end of the build.
+*I get some errors at the end of the build.*
 
 However ensure the necessary files (.dll, .lib, .boot) have been created here
 
@@ -109,7 +108,7 @@ C:\projects\ChezScheme\a6nt\boot\a6nt
 
 ### Recap
 
-We have used Linux to build a windows exe with visual C++
+We have used Linux to build a standard chez windows exe with visual C++
 
 The exe runs here from the bash shell
 
@@ -119,6 +118,8 @@ or here from cmd
 
 c:\projects\ChezScheme\a6nt\bin\a6nt>scheme
 
+
+### Modify scheme to trap the windows escape key.
 
 The whole point though is we want to modify scheme; to be interruptable in a GUI window.
 
