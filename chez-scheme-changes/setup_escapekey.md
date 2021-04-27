@@ -1,8 +1,8 @@
 ## Things needed to update the scheme engine for this project.
 
 - A Windows C++ compiler.
-- Visual Studio Community
-   - https://visualstudio.microsoft.com/vs/community/
+  - get Visual Studio Community
+     - from https://visualstudio.microsoft.com/vs/community/
    
 
 A good way to install C++ libraries is to use vcpkg
