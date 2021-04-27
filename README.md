@@ -4,7 +4,7 @@ This is a windows workspace for Chez Scheme.
 
 ## Reason
 
-Provides a simple alternative to a terminal; creates a workspace type interface; that prevents text rushing off the screen; keeps results and output into a different pane than the script source.
+Provides a simple alternative to a terminal; creates a workspace type interface; prevents text rushing off the screen; places results and output into different panes from the script source.
 
 - Uses tiled panes rather than overlapping windows; there are several standard arrangements that rearrange the panes in a useful way.
 - Provides a graphical output pane; for drawings and animations.
