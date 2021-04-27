@@ -9,11 +9,11 @@ A good way to install C++ libraries is to use vcpkg
 
 There are many usful libraries under vcpkg that you might like to integrate into Scheme later.
 
-git clone https://github.com/microsoft/vcpkg
-.\vcpkg\bootstrap-vcpkg.bat
-.\vcpkg\vcpkg integrate install
-.\vcpkg\vcpkg install scintilla:x64-windows
-.\vcpkg\vcpkg install fmt:x64-windows
+- git clone https://github.com/microsoft/vcpkg
+   - .\vcpkg\bootstrap-vcpkg.bat
+   - .\vcpkg\vcpkg integrate install
+   - .\vcpkg\vcpkg install scintilla:x64-windows
+   - .\vcpkg\vcpkg install fmt:x64-windows
 
 
 ### Unmodified chez
