@@ -547,12 +547,26 @@
     (float float float float) ptr) x y w h)))
 
  (define fill-colour
- (lambda (r g b a)
+  (lambda (r g b a)
    ((foreign-procedure "d2d_fill_color"
     (float float float float) ptr) r g b a)))
 	
+ (define brush-colour
+  (lambda (r g b a)
+   ((foreign-procedure "d2d_fill_color"
+    (float float float float) ptr) r g b a)))	
+	
  (define add-fill-colour
- (lambda (r g b a)
+  (lambda (r g b a)
+   ((foreign-procedure "add_fill_colour"
+    (float float float float) ptr) r g b a)))
+	 (define radial-gradient
+	 (lambda (c)
+	   ((foreign-procedure "d2d_radial_gradient_color_list"
+		(ptr) ptr) c)))
+		
+ (define add-brush-colour
+  (lambda (r g b a)
    ((foreign-procedure "add_fill_colour"
     (float float float float) ptr) r g b a)))
 	 (define radial-gradient
@@ -620,10 +634,20 @@
    ((foreign-procedure "d2d_color"
     (float float float float) ptr) r g b a)))
 	
+(define pen-colour
+ (lambda (r g b a)
+   ((foreign-procedure "d2d_color"
+    (float float float float) ptr) r g b a)))	
+	
 (define add-line-colour
  (lambda (r g b a)
    ((foreign-procedure "add_line_colour"
     (float float float float) ptr) r g b a)))
+	
+(define add-pen-colour
+ (lambda (r g b a)
+   ((foreign-procedure "add_line_colour"
+    (float float float float) ptr) r g b a)))	
 		
 (define free-sprites
  (lambda ()

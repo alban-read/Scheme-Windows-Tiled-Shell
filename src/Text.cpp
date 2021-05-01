@@ -1,15 +1,14 @@
 
 #include "stdafx.h"
 #include "Text.h"
-#include "resource.h"
 #include "SciLexer.h"
 #include "Scintilla.h"
-#include "ContainerApp.h"
 #include "Output.h"
 #include "Engine.h"
 #include <fmt/format.h>
 #include <iostream>
 #include <fstream>
+#include <utility>
 #include "Utility.h"
  
 
@@ -41,11 +40,11 @@ int response_snap_shot_len = 0;
 char* transcript_snap_shot;
 int  transcript_snap_shot_len = 0;
 
-char text_font[512];
+std::string text_font;
 
 
 void sc_setText(HWND h, char* text) {
-	int l = strlen(text);
+	auto l = strlen(text);
 	send_editor(h, SCI_SETTEXT, l, reinterpret_cast<LPARAM>(text));
 }
 
@@ -109,6 +108,7 @@ static const char g_scheme2[] =
 "batch-draw-ellipse batch-draw-line batch-draw-rect batch-draw-scaled-rotated-sprite "
 "batch-draw-sprite batch-fill-ellipse batch-fill-rect batch-render-sprite batch-render-sprite-scale-rot "
 "batch-write-text "
+"brush-colour "
 "clear-image clear-transcript clear-sprite-command clear-sprite-commands "
 "draw-batch draw-into-sprite draw-ellipse draw-line draw-rect draw-scaled-rotated-sprite draw-sprite " 
 "every eval->string eval->text " 
@@ -118,7 +118,7 @@ static const char g_scheme2[] =
 "identity image-size "
 "keyboard-delay "
 "line-colour linear-gradient load-sound load-sprites make-sprite "
-"pen-width play-sound radial-gradient render render-sprite render-sprite-scale-rot release restart-engine rotate  "
+"pen-colour pen-width play-sound radial-gradient render render-sprite render-sprite-scale-rot release restart-engine rotate  "
 "safely select-linear-brush select-radial-brush "
 "set-draw-sprite set-every-function set-linear-brush set-radial-brush  show sprite-size stop-every "
 "web-message write-text ";
@@ -133,7 +133,7 @@ struct s_scintilla_colors
 	int         iItem;
 	COLORREF    rgb;
 	int			size;
-	char*		face;
+	const char*	face;
 	bool		bold;
 	bool		italic;
 };
@@ -142,23 +142,23 @@ const int fsz = 10;
 
 static s_scintilla_colors scheme[] =
 {	//	item					colour					sz	face	bold	italic
-	{ SCE_LISP_DEFAULT,         RGB(  10,  10,  10),	fsz, text_font,	false, false },
-	{ SCE_LISP_COMMENT,         RGB(  20,  20, 120),	fsz, text_font,	false, true },
-	{ SCE_LISP_NUMBER,          RGB(  30,  30, 130),	fsz, text_font,	false, false },
-	{ SCE_LISP_KEYWORD,         RGB(  40,  40, 110),	fsz, text_font,	true, false },
-	{ SCE_LISP_KEYWORD_KW,      RGB(  50,  50, 180),	fsz, text_font,	false, false },
-	{ SCE_LISP_SYMBOL,          RGB(  60,  60, 110),	fsz, text_font,	false, false },
-	{ SCE_LISP_STRING,          RGB(  70,  80, 110),	fsz, text_font,	false, false },
-	{ SCE_LISP_STRINGEOL,       RGB(  80,  80, 110),	fsz, text_font,	false, false },
-	{ SCE_LISP_IDENTIFIER,      RGB(  25,  20, 110),	fsz, text_font,	false, false },
-	{ SCE_LISP_OPERATOR,		RGB(  90,  90, 110),	fsz, text_font,	false, false },
-	{ SCE_LISP_SPECIAL,		    RGB(  95,  90, 115),	fsz, text_font,	false, false },
+	{ SCE_LISP_DEFAULT,         RGB(  10,  10,  10),	fsz, text_font.c_str(),	false, false },
+	{ SCE_LISP_COMMENT,         RGB(  20,  20, 120),	fsz, text_font.c_str(),	false, true },
+	{ SCE_LISP_NUMBER,          RGB(  30,  30, 130),	fsz, text_font.c_str(),	false, false },
+	{ SCE_LISP_KEYWORD,         RGB(  40,  40, 110),	fsz, text_font.c_str(),	true, false },
+	{ SCE_LISP_KEYWORD_KW,      RGB(  50,  50, 180),	fsz, text_font.c_str(),	false, false },
+	{ SCE_LISP_SYMBOL,          RGB(  60,  60, 110),	fsz, text_font.c_str(),	false, false },
+	{ SCE_LISP_STRING,          RGB(  70,  80, 110),	fsz, text_font.c_str(),	false, false },
+	{ SCE_LISP_STRINGEOL,       RGB(  80,  80, 110),	fsz, text_font.c_str(),	false, false },
+	{ SCE_LISP_IDENTIFIER,      RGB(  25,  20, 110),	fsz, text_font.c_str(),	false, false },
+	{ SCE_LISP_OPERATOR,		RGB(  90,  90, 110),	fsz, text_font.c_str(),	false, false },
+	{ SCE_LISP_SPECIAL,		    RGB(  95,  90, 115),	fsz, text_font.c_str(),	false, false },
 	{ -1,                     0 }
 };
 
 
 
-void show_folds(HWND h) {
+void show_folds(const HWND h) {
 
 	send_editor(h, SCI_SETPROPERTY, reinterpret_cast<WPARAM>("fold"), reinterpret_cast<LPARAM>("1"));
 	send_editor(h, SCI_SETPROPERTY, reinterpret_cast<WPARAM>("fold.compact"), reinterpret_cast<LPARAM>("0"));
@@ -181,7 +181,7 @@ void show_folds(HWND h) {
 	send_editor(h, SCI_SETFOLDFLAGS, 16, 0);
 }
 
-void hide_folds(HWND h) {
+void hide_folds(const HWND h) {
 
 	send_editor(h, SCI_SETPROPERTY, reinterpret_cast<WPARAM>("fold"), reinterpret_cast<LPARAM>("0"));
 	send_editor(h, SCI_SETPROPERTY, reinterpret_cast<WPARAM>("fold.compact"), reinterpret_cast<LPARAM>("0"));
@@ -193,7 +193,7 @@ void hide_folds(HWND h) {
 }
 
 
-void initialize_editor(HWND h) {
+void initialize_editor(const HWND h) {
 
 	inputed = h;
 
@@ -218,7 +218,7 @@ void initialize_editor(HWND h) {
 
 	// dwell/ used for brackets
 	send_editor(h, SCI_SETMOUSEDWELLTIME, 500);
-	set_a_style(h, STYLE_DEFAULT, blue, RGB(0xFF, 0xFF, 0xEA), fsz+1, text_font);
+	set_a_style(h, STYLE_DEFAULT, blue, RGB(0xFF, 0xFF, 0xEA), fsz+1, text_font.c_str());
 
 	// Set caret foreground color
 	send_editor(h, SCI_SETCARETFORE, RGB(0, 0, 255));
@@ -238,8 +238,8 @@ void initialize_editor(HWND h) {
 			scheme[i].bold,
 			scheme[i].italic);
 
-	set_a_style(h, STYLE_BRACELIGHT, blue, RGB(0xFF, 0xFF, 0xEA), fsz+1, text_font);
-	set_a_style(h, STYLE_BRACEBAD, red, RGB(0xFF, 0xFF, 0xEA), fsz + 1, text_font);
+	set_a_style(h, STYLE_BRACELIGHT, blue, RGB(0xFF, 0xFF, 0xEA), fsz+1, text_font.c_str());
+	set_a_style(h, STYLE_BRACEBAD, red, RGB(0xFF, 0xFF, 0xEA), fsz + 1, text_font.c_str());
 
 
 	send_editor(h, SCI_SETKEYWORDS, 0, reinterpret_cast<LPARAM>(g_scheme));
@@ -273,7 +273,7 @@ void initialize_response_editor(HWND h) {
 
 	// dwell/ used for brackets
 	send_editor(h, SCI_SETMOUSEDWELLTIME, 500);
-	set_a_style(h, STYLE_DEFAULT, gray, RGB(0xFF, 0xFF, 0xEA), fsz + 1, text_font);
+	set_a_style(h, STYLE_DEFAULT, gray, RGB(0xFF, 0xFF, 0xEA), fsz + 1, text_font.c_str());
 
 	// Set caret foreground color
 	send_editor(h, SCI_SETCARETFORE, RGB(0, 0, 255));
@@ -293,8 +293,8 @@ void initialize_response_editor(HWND h) {
 			scheme[i].bold,
 			scheme[i].italic);
 
-	set_a_style(h, STYLE_BRACELIGHT, orange, RGB(0xFF, 0xFF, 0xEA), fsz, text_font);
-	set_a_style(h, STYLE_BRACEBAD, red, RGB(0xFF, 0xFF, 0xEA), fsz, text_font);
+	set_a_style(h, STYLE_BRACELIGHT, orange, RGB(0xFF, 0xFF, 0xEA), fsz, text_font.c_str());
+	set_a_style(h, STYLE_BRACEBAD, red, RGB(0xFF, 0xFF, 0xEA), fsz, text_font.c_str());
 
 	send_editor(h, SCI_SETKEYWORDS, 0, reinterpret_cast<LPARAM>(g_scheme));
 	send_editor(h, SCI_SETKEYWORDS, 1, reinterpret_cast<LPARAM>(g_scheme2));
@@ -308,7 +308,7 @@ void initialize_response_editor(HWND h) {
 }
 
 
-void initialize_transcript_editor(HWND h) {
+void initialize_transcript_editor(const HWND h) {
 
 	transcript = h;
 
@@ -330,7 +330,7 @@ void initialize_transcript_editor(HWND h) {
 
 	// dwell
 	send_editor(h, SCI_SETMOUSEDWELLTIME, 500);
-	set_a_style(h, STYLE_DEFAULT, gray, RGB(0xFF, 0xFF, 0xEA), fsz, text_font);
+	set_a_style(h, STYLE_DEFAULT, gray, RGB(0xFF, 0xFF, 0xEA), fsz, text_font.c_str());
 
 	// Set caret foreground color
 	send_editor(h, SCI_SETCARETFORE, RGB(0, 0, 255));
@@ -367,13 +367,13 @@ void scintillate(SCNotification* N, LPARAM lParam) {
 
 	if (N->nmhdr.code == SCN_CHARADDED) {
 		auto c = N->ch;
-		const int lpos = send_editor(h, SCI_GETCURRENTPOS);
-		const int line = send_editor(h, SCI_LINEFROMPOSITION, lpos);
+		const auto lpos = send_editor(h, SCI_GETCURRENTPOS);
+		const auto line = send_editor(h, SCI_LINEFROMPOSITION, lpos);
 	}
 
 	else if (N->nmhdr.code == SCN_UPDATEUI) {
-		const int lpos = send_editor(h, SCI_GETCURRENTPOS);
-		const int c = send_editor(h, SCI_GETCHARAT, lpos, 0);
+		const auto lpos = send_editor(h, SCI_GETCURRENTPOS);
+		const auto c =static_cast<const int>(send_editor(h, SCI_GETCHARAT, lpos, 0));
 		if (is_brace(c)) {
 			const int bracepos = send_editor(h, SCI_BRACEMATCH, lpos, 0);
 			if (bracepos != -1) {
@@ -385,8 +385,8 @@ void scintillate(SCNotification* N, LPARAM lParam) {
 		}
 	}
 	else if (N->nmhdr.code == SCN_DWELLSTART) {
-		const int lpos = send_editor(h, SCI_GETCURRENTPOS);
-		const int c = send_editor(h, SCI_GETCHARAT, lpos, 0);
+		const auto lpos = send_editor(h, SCI_GETCURRENTPOS);
+		const auto c = static_cast<const int>(send_editor(h, SCI_GETCHARAT, lpos, 0));
 		if (is_brace(c)) {
 			const int bracepos = send_editor(h, SCI_BRACEMATCH, lpos, 0);
 			if (bracepos != -1) {
@@ -400,7 +400,7 @@ void scintillate(SCNotification* N, LPARAM lParam) {
 }
 
 
-void eval_scite(HWND hc)
+void eval_scite(const HWND hc)
 {
 	const auto l = send_editor(hc, SCI_GETLENGTH) + 1;
 	auto* cmd = new(std::nothrow) char[l];
@@ -412,9 +412,8 @@ void eval_scite(HWND hc)
 	Engine::Eval(cmd);
 }
 
-void eval_selected_scite(HWND hc)
+void eval_selected_scite(const HWND hc)
 {
-
 	if (hc == response || hc == transcript || hc == inputed) {
 
 		const int l = send_editor(hc, SCI_GETSELTEXT) + 1;
@@ -436,7 +435,7 @@ void eval_selected_scite(HWND hc)
 	}
 }
 
-char* sc_getText(HWND hc) {
+char* sc_getText(const HWND hc) {
 	const auto l = send_editor(hc, SCI_GETLENGTH) + 1;
 	auto cmd = new(std::nothrow) char[l];
 	if (cmd != nullptr) memset(cmd, 0, l);
@@ -448,13 +447,13 @@ const char* sc_getExprText() {
 	return sc_getText(inputed);
 }
 
-void sc_appendText(HWND h, char* text) {
+void sc_appendText(const HWND h, char* text) {
 	const int l = strlen(text);
 	send_editor(h, SCI_APPENDTEXT, l, reinterpret_cast<LPARAM>(text));
 	Sleep(10);
 }
 
-void sc_setTextFromFile(HWND h, char* fname) {
+void sc_setTextFromFile(const HWND h, char* fname) {
 	std::ifstream f(fname);
 	std::stringstream buffer;
 	buffer << f.rdbuf();
@@ -500,7 +499,7 @@ void appendTranscriptNL(char* s)
 {
 	if (transcript != nullptr) {
 		sc_appendText(transcript, s);
-		sc_appendText(transcript, "\r\n");
+		sc_appendText(transcript, static_cast<char*>("\r\n"));
 	}
 }
 
@@ -508,15 +507,15 @@ void appendTranscriptNL(char* s)
 void appendTranscript1(char* s)
 {
 	if (transcript != nullptr) {
-		const int l = strlen(s);
+		const auto l = strlen(s);
 		send_editor(transcript, SCI_APPENDTEXT, l, reinterpret_cast<LPARAM>(s));
 	}
 }
 
 void display_status(char* s)
 {
-	HWND h = Utility::get_main();
-	::PostMessageA(h, WM_USER + 500, (WPARAM)0, (LPARAM)s);
+	const HWND h = Utility::get_main();
+	::PostMessageA(h, WM_USER + 500, static_cast<WPARAM>(0), reinterpret_cast<LPARAM>(s));
 }
 
 void appendTranscriptln(char* s)
@@ -601,7 +600,7 @@ int CALLBACK EnumFontFamExProc(
 	LPARAM lParam
 )
 {
-	std::wstring font_face(lpelfe->elfFullName);
+	const std::wstring font_face(lpelfe->elfFullName);
 
 	if (font_face.find(L"Hack") != std::string::npos)
 		hack_available = true;
@@ -625,9 +624,9 @@ void test_for_code_fonts() {
 	LOGFONT lf;
 	lf.lfFaceName[0] = '\0';
 	lf.lfCharSet = DEFAULT_CHARSET;
-	HDC hDC = GetDC(NULL);
-	EnumFontFamiliesEx(hDC, &lf, (FONTENUMPROC)&EnumFontFamExProc, 0, 0);
-	ReleaseDC(NULL, hDC);
+	const HDC hDC = GetDC(nullptr);
+	EnumFontFamiliesEx(hDC, &lf, reinterpret_cast<FONTENUMPROC>(&EnumFontFamExProc), 0, 0);
+	ReleaseDC(nullptr, hDC);
 }
 
 
@@ -638,29 +637,28 @@ int select_code_font() {
 
  
 	if (hack_available==true) {
-		strncpy(text_font, "Hack", 5);
+		text_font="Hack";
 		return 0;
 	}
 	if (DejaVu_Sans_Mono_available==true) {
-		strncpy(text_font, "DejaVu Sans Mono", 17);
+		text_font = "DejaVu Sans Mono";
 		return 1;
 	}
 	if (Droid_Sans_Mono_available==true) {
-		strncpy(text_font, "Droid Sans Mono", 16);
+		text_font = "Droid Sans Mono";
 		return 2;
 	}
 	if (font_3270_available == true) {
-		strncpy(text_font, "ibm3270", 8);
+		text_font = "ibm3270";
 		return 3;
 	}
-
-	strncpy(text_font, "Consolas", 9);
+	text_font = "Consolas";
 	return 4;
 }
 
 void CViewText::SetFont(char* s)
 {
-	strncpy(text_font, s, 1+strlen(s));
+	text_font = s;
 	initialize_editor(inputed);
 }
 
@@ -705,7 +703,7 @@ void CViewText::UpdateMenus(HMENU menu)
 
 void CViewText::OnInitialUpdate()
 {
-	HWND h = this->GetHwnd();
+	const HWND h = this->GetHwnd();
 	select_code_font();
 	initialize_editor(h);
 
@@ -784,7 +782,7 @@ void CViewText::LoadFile(char* fname)
 
 void CViewText::LoadFile(std::wstring fname)
 {
-	loaded_file_name = fname;
+	loaded_file_name = std::move(fname);
 	ClearAll(inputed);
 	Sleep(10);
 	std::ifstream f(loaded_file_name);
@@ -797,8 +795,8 @@ void CViewText::LoadFile(std::wstring fname)
 	f.close();
 	if (!loaded_file_name.empty()) {
 		loaded_message = fmt::format(L"Loaded file: {} size: {} bytes", loaded_file_name, size);
-		HWND h = Utility::get_main();
-		::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)loaded_message.c_str());
+		const HWND h = Utility::get_main();
+		::PostMessageW(h, WM_USER + 500, static_cast<WPARAM>(0), reinterpret_cast<LPARAM>(loaded_message.c_str()));
 	}
 	Sleep(10);
 
@@ -817,8 +815,8 @@ void CViewText::SaveFile() {
 	}
 
 	saving_message = fmt::format(L"Saving file: {}", loaded_file_name);
-	HWND h = Utility::get_main();
-	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)saving_message.c_str());
+	const HWND h = Utility::get_main();
+	::PostMessageW(h, WM_USER + 500, static_cast<WPARAM>(0), reinterpret_cast<LPARAM>(saving_message.c_str()));
 	Sleep(10);
 
 	const auto l = send_editor(inputed, SCI_GETLENGTH) + 1;
@@ -834,14 +832,13 @@ void CViewText::SaveFile() {
 	send_editor(inputed, SCI_GETTEXT, l, reinterpret_cast<LPARAM>(text_data));
 	DWORD bytesWritten;
 
-	HANDLE hFile;
-	hFile = CreateFile(loaded_file_name.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-	WriteFile(hFile, text_data, l, &bytesWritten, NULL);
+	const HANDLE hFile = CreateFile(loaded_file_name.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	WriteFile(hFile, text_data, l, &bytesWritten, nullptr);
 	Sleep(10);
 	CloseHandle(hFile);
 	Sleep(10);
 	saved_message = fmt::format(L"Saved file: {} size: {} bytes.", loaded_file_name,(int)bytesWritten);
-	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)saved_message.c_str());
+	::PostMessageW(h, WM_USER + 500, static_cast<WPARAM>(0), reinterpret_cast<LPARAM>(saved_message.c_str()));
 	Sleep(10);
 	delete[] text_data;
  
@@ -859,7 +856,7 @@ void CViewText::SaveFileAs(std::wstring fname)
 
 	saving_message = fmt::format(L"Saving file AS: {}", loaded_file_name);
 	HWND h = Utility::get_main();
-	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)saving_message.c_str());
+	::PostMessageW(h, WM_USER + 500, static_cast<WPARAM>(0), reinterpret_cast<LPARAM>(saving_message.c_str()));
 	Sleep(10);
 
 	auto* text_data = new(std::nothrow) char[l];
@@ -870,19 +867,16 @@ void CViewText::SaveFileAs(std::wstring fname)
 	send_editor(inputed, SCI_GETTEXT, l, reinterpret_cast<LPARAM>(text_data));
 	DWORD bytesWritten;
 
-	HANDLE hFile;
-	hFile = CreateFile(loaded_file_name.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+	const HANDLE hFile = CreateFile(loaded_file_name.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
 	WriteFile(hFile, text_data, l, &bytesWritten, NULL);
 	Sleep(100);
 	CloseHandle(hFile);
 
 	saved_message = fmt::format(L"Saved file AS: {} size: {} bytes.", loaded_file_name, (int)bytesWritten);
-	::PostMessageW(h, WM_USER + 500, (WPARAM)0, (LPARAM)saved_message.c_str());
+	::PostMessageW(h, WM_USER + 500, static_cast<WPARAM>(0), reinterpret_cast<LPARAM>(saved_message.c_str()));
 	Sleep(10);
 
 	delete[] text_data;
-
- 
 }
 
 
@@ -901,7 +895,7 @@ void CViewText::TakeSnapShot()
 		return;
 	}
  
-	if (snap_shot != nullptr) delete[] snap_shot;
+	delete[] snap_shot;
 
 	snap_shot = new(std::nothrow) char[snap_shot_len];
 	if (snap_shot == nullptr) {
@@ -915,7 +909,7 @@ void CViewText::TakeSnapShot()
 		return;
 	}
  
-	if (response_snap_shot != nullptr) delete[] response_snap_shot;
+	delete[] response_snap_shot;
 
 	response_snap_shot = new(std::nothrow) char[response_snap_shot_len];
 	if (response_snap_shot == nullptr) {
@@ -929,7 +923,7 @@ void CViewText::TakeSnapShot()
 	if (transcript_snap_shot_len == 0) {
 		return;
 	}
-	if (transcript_snap_shot != nullptr) delete[] transcript_snap_shot;
+	delete[] transcript_snap_shot;
 
 	transcript_snap_shot = new(std::nothrow) char[transcript_snap_shot_len];
 	if (transcript_snap_shot == nullptr) {
@@ -937,8 +931,6 @@ void CViewText::TakeSnapShot()
 	}
 	memset(transcript_snap_shot, 0, transcript_snap_shot_len);
 	send_editor(transcript, SCI_GETTEXT, transcript_snap_shot_len, reinterpret_cast<LPARAM>(transcript_snap_shot));
-
-
 }
 
 void CViewText::RestoreSnapShot()
@@ -947,34 +939,33 @@ void CViewText::RestoreSnapShot()
  
 }
 
-std::string finding;
-int find_pos = 0;
+std::string finding="";
+unsigned long long find_pos = 0;
 int search_flags;
 
 void CViewText::ResetSearch() {
 	find_pos = 0;
 	finding = "";
 }
-void CViewText::SetSearchFlags(int flags) {
+void CViewText::SetSearchFlags(const int flags) {
 	search_flags = flags;
 	send_editor(inputed, SCI_SETSEARCHFLAGS,flags);
 }
 
 void CViewText::Search(std::wstring s)
 {
-	int pos = 0;
 	int flags = SCFIND_MATCHCASE | SCFIND_WHOLEWORD;
 	send_editor(inputed, SCI_TARGETWHOLEDOCUMENT);
-	std::string s1 = Utility::ws_2s(s);
-	if (s1.compare(finding)!=0){
+	const std::string s1 = Utility::ws_2s(s);
+	if (s1 != finding){
 		finding = s1;
 		find_pos = 0;
 	}
-	if ((s1.compare(finding) == 0) && (find_pos > 0)) {
+	if ((s1 == finding) && (find_pos > 0)) {
 		send_editor(inputed, SCI_SETTARGETSTART, find_pos);
-	}
-	pos = send_editor(inputed, SCI_SEARCHINTARGET, s1.length(), (LPARAM)s1.c_str());
-	auto line = send_editor(inputed, SCI_LINEFROMPOSITION, pos);
+	} 
+	const auto pos = send_editor(inputed, SCI_SEARCHINTARGET, s1.length(), reinterpret_cast<LPARAM>(s1.c_str()));
+	const auto line = send_editor(inputed, SCI_LINEFROMPOSITION, pos);
 	auto len = send_editor(inputed, SCI_GETLENGTH);
 	send_editor(inputed, SCI_GOTOLINE, line);
 	send_editor(inputed, SCI_SETSELECTIONSTART, pos);
@@ -1001,8 +992,6 @@ void CViewResponseText::OnInitialUpdate()
 	if (response_snap_shot == nullptr) return;
 	send_editor(h, SCI_SETTEXT, response_snap_shot_len, reinterpret_cast<LPARAM>(response_snap_shot));
 	response_snap_shot_len = 0;
-
-
 }
 
 void CViewTranscriptText::PreCreate(CREATESTRUCT& cs)
@@ -1080,10 +1069,10 @@ CDockImage::CDockImage()
 {
 	// Set the view window to our edit control
 	CDocker::SetView(m_View);
-
 	// Set the width of the splitter bar
 	SetBarWidth(3);
 }
+
 void CViewText::ClearAll(HWND hwnd) {
 	send_editor(hwnd, SCI_CLEARALL);
 }

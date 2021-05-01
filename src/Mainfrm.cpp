@@ -3,9 +3,6 @@
 
 #include "stdafx.h"
 #include "mainfrm.h"
-#include "Classes.h"
-#include "Files.h"
-#include "Output.h"
 #include "Text.h"
 #include "resource.h"
 #include "WebViewer.h"
@@ -48,7 +45,7 @@ void CMainFrame::LoadEvalDockers()
 {
 	const DWORD dw_style = DS_CLIENTEDGE; // The style added to each docker
 	const auto width = GetWindowRect().Size().cx;
-	auto in = AddDockedChild(new CDockText, DS_DOCKED_LEFT | dw_style, width / 2.0, ID_DOCK_TEXT1);
+	auto in = AddDockedChild(new CDockText, DS_DOCKED_LEFT | dw_style, static_cast<int>(width / 2.0), ID_DOCK_TEXT1);
 	in->AddDockedChild(new CDockResponseText, DS_DOCKED_BOTTOM | dw_style, 200, ID_DOCK_TEXT3);
 	AddDockedChild(new CDockTranscriptText, DS_DOCKED_LEFT | DS_DOCKED_RIGHT | dw_style, 200, ID_DOCK_TEXT2);
  
@@ -59,9 +56,9 @@ void CMainFrame::LoadDefaultDockers()
 {
 	const DWORD dw_style = DS_CLIENTEDGE; // The style added to each docker
 	const auto width = GetWindowRect().Size().cx;
-	auto in = AddDockedChild(new CDockText, DS_DOCKED_LEFT | dw_style, width / 2.2, ID_DOCK_TEXT1);
+	auto in = AddDockedChild(new CDockText, DS_DOCKED_LEFT | dw_style, static_cast<int>(width / 2.0), ID_DOCK_TEXT1);
 	in->AddDockedChild(new CDockResponseText, DS_DOCKED_BOTTOM | dw_style, 200, ID_DOCK_TEXT3);
-	auto im = AddDockedChild(new CDockImage, DS_DOCKED_LEFT | DS_DOCKED_RIGHT | dw_style, width / 3, ID_DOCK_IMAGE1);
+	auto im = AddDockedChild(new CDockImage, DS_DOCKED_LEFT | DS_DOCKED_RIGHT | dw_style, static_cast<int>(width / 2.0), ID_DOCK_IMAGE1);
 	im->AddDockedChild(new CDockTranscriptText, DS_DOCKED_BOTTOM | dw_style, 200, ID_DOCK_TEXT2);
  
 }
@@ -70,11 +67,11 @@ void CMainFrame::load_browser_dockers()
 {
 	const auto width = GetWindowRect().Size().cx;
 	const DWORD dw_style = DS_CLIENTEDGE; // The style added to each docker
-	AddDockedChild(new CDockWebViewer, DS_DOCKED_LEFT | dw_style, width / 3, ID_DOCK_BROWSER1);
-	auto in = AddDockedChild(new CDockText, DS_DOCKED_LEFT | dw_style, width / 3, ID_DOCK_TEXT1);
+	AddDockedChild(new CDockWebViewer, DS_DOCKED_LEFT | dw_style, static_cast<int>(width / 3), ID_DOCK_BROWSER1);
+	auto in = AddDockedChild(new CDockText, DS_DOCKED_LEFT | dw_style, static_cast<int>(width / 3), ID_DOCK_TEXT1);
 	in->AddDockedChild(new CDockResponseText, DS_DOCKED_BOTTOM | dw_style, 200, ID_DOCK_TEXT3);
-	auto im = AddDockedChild(new CDockImage, DS_DOCKED_LEFT | DS_DOCKED_RIGHT | dw_style, width / 3, ID_DOCK_IMAGE1);
-	im->AddDockedChild(new CDockTranscriptText, DS_DOCKED_CONTAINER | dw_style, width / 3, ID_DOCK_TEXT2);
+	auto im = AddDockedChild(new CDockImage, DS_DOCKED_LEFT | DS_DOCKED_RIGHT | dw_style, static_cast<int>(width / 3), ID_DOCK_IMAGE1);
+	im->AddDockedChild(new CDockTranscriptText, DS_DOCKED_CONTAINER | dw_style, static_cast<int>(width / 3), ID_DOCK_TEXT2);
  
 }
 
@@ -83,11 +80,11 @@ void CMainFrame::load_browser_image_dockers()
 {
 	const auto width = GetWindowRect().Size().cx;
 	const DWORD dw_style = DS_CLIENTEDGE; // The style added to each docker
-	input=AddDockedChild(new CDockText, DS_DOCKED_LEFT | dw_style, width / 3, ID_DOCK_TEXT1);
+	input=AddDockedChild(new CDockText, DS_DOCKED_LEFT | dw_style, static_cast<int>(width / 3), ID_DOCK_TEXT1);
 	input->AddDockedChild(new CDockResponseText, DS_DOCKED_CONTAINER | dw_style, 200, ID_DOCK_TEXT3);
 	input->AddDockedChild(new CDockTranscriptText, DS_DOCKED_CONTAINER | dw_style, 200, ID_DOCK_TEXT2);
-	image=AddDockedChild(new CDockImage, DS_DOCKED_TOP | DS_DOCKED_RIGHT | dw_style, width / 3, ID_DOCK_IMAGE1);
-	browser=input->AddDockedChild(new CDockWebViewer, DS_DOCKED_CONTAINER | dw_style, width / 3, ID_DOCK_BROWSER1);
+	image=AddDockedChild(new CDockImage, DS_DOCKED_TOP | DS_DOCKED_RIGHT | dw_style, static_cast<int>(width / 3), ID_DOCK_IMAGE1);
+	browser=input->AddDockedChild(new CDockWebViewer, DS_DOCKED_CONTAINER | dw_style, static_cast<int>(width / 3), ID_DOCK_BROWSER1);
  
 }
 
@@ -95,10 +92,10 @@ void CMainFrame::load_image_dockers()
 {
 	const auto width = GetWindowRect().Size().cx;
 	const DWORD dw_style = DS_CLIENTEDGE; // The style added to each docker
-	input = AddDockedChild(new CDockText, DS_DOCKED_LEFT | dw_style, width / 3, ID_DOCK_TEXT1);
+	input = AddDockedChild(new CDockText, DS_DOCKED_LEFT | dw_style, static_cast<int>(width / 3), ID_DOCK_TEXT1);
 	auto x=AddDockedChild(new CDockResponseText, DS_DOCKED_BOTTOM | dw_style, 160, ID_DOCK_TEXT3);
 	x->AddDockedChild(new CDockTranscriptText, DS_DOCKED_RIGHT | dw_style, 160, ID_DOCK_TEXT2);
-    AddDockedChild(new CDockImage, DS_DOCKED_TOP | DS_DOCKED_RIGHT | dw_style, width / 3, ID_DOCK_IMAGE1);
+    AddDockedChild(new CDockImage, DS_DOCKED_TOP | DS_DOCKED_RIGHT | dw_style, static_cast<int>(width / 3), ID_DOCK_IMAGE1);
  
 }
 
@@ -109,7 +106,7 @@ void CMainFrame::load_full_image_dockers()
 
 CDocker* CMainFrame::NewDockerFromID(int id)
 {
-	CDocker* pDock = NULL;
+	CDocker* pDock = nullptr;
 	switch (id)
 	{
 	case ID_DOCK_TEXT1:
@@ -589,27 +586,20 @@ void CMainFrame::SetupToolBar()
 
 LRESULT CMainFrame::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	
-	LPFINDREPLACE lpfr;
-
 	if (uMsg == uFindReplaceMsg)
 	{
-		 
-		lpfr = (LPFINDREPLACE)lParam;
-
- 
-		if (lpfr->Flags & FR_DIALOGTERM)
+		const auto finder = reinterpret_cast<LPFINDREPLACE>(lParam);
+		if (finder->Flags & FR_DIALOGTERM)
 		{
-			file_find_hdlg = NULL;
+			file_find_hdlg = nullptr;
 			CViewText::ResetSearch();
 			return 0;
 		}
-
- 
-		if (lpfr->Flags & FR_FINDNEXT)
+		if (finder->Flags & FR_FINDNEXT)
 		{
-			CViewText::SetSearchFlags(lpfr->Flags);
-			CViewText::Search(lpfr->lpstrFindWhat);
+			CViewText::SetSearchFlags(finder->Flags);
+			std::wstring find_this = finder->lpstrFindWhat;
+			CViewText::Search(find_this);
 		}
 
 		return 0;
@@ -620,7 +610,7 @@ LRESULT CMainFrame::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_USER + 500:
 	{
-		SetStatusText((int)wParam, (LPCTSTR)lParam);
+		SetStatusText(static_cast<int>(wParam), reinterpret_cast<LPCTSTR>(lParam));
 		break;
 	}
 	case WM_USER + 501:
@@ -633,6 +623,7 @@ LRESULT CMainFrame::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		const int count = DragQueryFile(reinterpret_cast<HDROP>(wParam), 0xFFFFFFFF, nullptr, 0);
 		if (count == 0) { return TRUE; }
+			
 		auto index = 0;
 		const auto buffer = new char[64000];
 
